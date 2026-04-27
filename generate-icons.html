@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>יצירת אייקונים</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f3f4f6; }
+    canvas { border-radius: 20%; box-shadow: 0 4px 20px rgba(0,0,0,.2); margin: 16px; }
+    button { background: #1d4ed8; color: #fff; border: none; padding: 14px 32px; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 20px; }
+    p { color: #6b7280; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h2>יצירת אייקוני PWA — מאסף שדה</h2>
+  <div id="canvases"></div>
+  <button onclick="downloadAll()">⬇️ הורד את שני האייקונים</button>
+  <p>לאחר ההורדה, העבר את הקבצים לתיקייה <code>public/icons/</code> בפרויקט</p>
+
+  <script>
+    function drawIcon(size) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      canvas.title = `icon-${size}.png`;
+      const ctx = canvas.getContext('2d');
+
+      // Rounded background
+      const r = size * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.arcTo(size, 0, size, size, r);
+      ctx.arcTo(size, size, 0, size, r);
+      ctx.arcTo(0, size, 0, 0, r);
+      ctx.arcTo(0, 0, size, 0, r);
+      ctx.closePath();
+      ctx.fillStyle = '#1d4ed8';
+      ctx.fill();
+
+      // Inner circle (lighter)
+      ctx.beginPath();
+      ctx.arc(size / 2, size * 0.42, size * 0.26, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fill();
+
+      // Pin icon
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${Math.round(size * 0.52)}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📍', size / 2, size * 0.48);
+
+      return canvas;
+    }
+
+    const sizes = [192, 512];
+    const container = document.getElementById('canvases');
+
+    sizes.forEach(size => {
+      const canvas = drawIcon(size);
+      canvas.style.width = Math.min(size, 180) + 'px';
+      canvas.style.height = Math.min(size, 180) + 'px';
+      const label = document.createElement('div');
+      label.textContent = `icon-${size}.png`;
+      label.style.cssText = 'font-size:.85rem;color:#6b7280;margin-bottom:8px;';
+      container.appendChild(canvas);
+      container.appendChild(label);
+    });
+
+    function downloadAll() {
+      sizes.forEach((size, i) => {
+        const canvas = document.querySelectorAll('canvas')[i];
+        setTimeout(() => {
+          const a = document.createElement('a');
+          a.download = `icon-${size}.png`;
+          a.href = canvas.toDataURL('image/png');
+          a.click();
+        }, i * 400);
+      });
+    }
+  </script>
+</body>
+</html>

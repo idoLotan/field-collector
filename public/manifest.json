@@ -1,0 +1,17 @@
+{
+  "name": "מאסף שדה",
+  "short_name": "מאסף שדה",
+  "description": "אפליקציה לאיסוף נתוני שדה עם GPS, תמונות וייצוא",
+  "theme_color": "#1d4ed8",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
