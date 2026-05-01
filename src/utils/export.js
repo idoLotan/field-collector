@@ -172,6 +172,100 @@ export async function shareWhatsApp(records) {
   await saveFile(zipBlob, zipFilename, 'application/zip');
 }
 
+// ── Survey Excel export ──
+function buildSurveyWorkbook(records) {
+  const rows = [['ID', 'Address', 'Latitude', 'Longitude', 'סוג נכס', 'נפשות', 'קבוצת גיל', 'דיירות', 'מצב נכס', 'שם בעל/ת הדירה', 'תעודת זהות', 'Notes', 'Date', 'Time', 'Photos']];
+  records.forEach(r => {
+    const photoNote = r.photos?.length
+      ? `${r.photos.length} photo${r.photos.length !== 1 ? 's' : ''} — files named ${formatId(r.id)}_1.jpg …`
+      : '';
+    rows.push([
+      formatId(r.id), r.address, r.lat, r.lon,
+      r.propertyType || '', r.residents || '', r.ageGroup || '',
+      r.tenancy || '', r.condition || '',
+      r.ownerName || '', r.ownerId || '',
+      r.notes, r.date, r.time, photoNote,
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch:10 },{ wch:35 },{ wch:14 },{ wch:14 },{ wch:14 },{ wch:10 },{ wch:14 },{ wch:12 },{ wch:14 },{ wch:22 },{ wch:14 },{ wch:40 },{ wch:12 },{ wch:10 },{ wch:32 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Survey Records');
+  return wb;
+}
+
+export async function shareSurveyWhatsApp(records) {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const zipFilename = `survey-${dateStr}.zip`;
+  const wbout = XLSX.write(buildSurveyWorkbook(records), { bookType: 'xlsx', type: 'array' });
+  const zip = new JSZip();
+  zip.file(`survey-records-${dateStr}.xlsx`, wbout);
+  const withPhotos = records.filter(r => r.photos?.length);
+  for (const r of withPhotos) {
+    const fid = formatId(r.id);
+    r.photos.forEach((dataUrl, i) => {
+      zip.file(`photos/${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
+    });
+  }
+  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const zipFile = new File([zipBlob], zipFilename, { type: 'application/zip' });
+  if (navigator.canShare?.({ files: [zipFile] })) {
+    try {
+      await navigator.share({ title: 'Survey Records', files: [zipFile] });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+  await saveFile(zipBlob, zipFilename, 'application/zip');
+}
+
+// ── Drainage Excel export ──
+function buildDrainageWorkbook(records) {
+  const rows = [['ID', 'Address', 'Latitude', 'Longitude', 'סוג רכיב', 'מצב', 'חומר', 'Notes', 'Date', 'Time', 'Photos']];
+  records.forEach(r => {
+    const photoNote = r.photos?.length
+      ? `${r.photos.length} photo${r.photos.length !== 1 ? 's' : ''} — files named ${formatId(r.id)}_1.jpg …`
+      : '';
+    rows.push([
+      formatId(r.id), r.address, r.lat, r.lon,
+      r.drainageType || '', r.condition || '', r.material || '',
+      r.notes, r.date, r.time, photoNote,
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch:10 },{ wch:35 },{ wch:14 },{ wch:14 },{ wch:12 },{ wch:14 },{ wch:10 },{ wch:40 },{ wch:12 },{ wch:10 },{ wch:32 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Drainage Records');
+  return wb;
+}
+
+export async function shareDrainageWhatsApp(records) {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const zipFilename = `drainage-${dateStr}.zip`;
+  const wbout = XLSX.write(buildDrainageWorkbook(records), { bookType: 'xlsx', type: 'array' });
+  const zip = new JSZip();
+  zip.file(`drainage-records-${dateStr}.xlsx`, wbout);
+  const withPhotos = records.filter(r => r.photos?.length);
+  for (const r of withPhotos) {
+    const fid = formatId(r.id);
+    r.photos.forEach((dataUrl, i) => {
+      zip.file(`photos/${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
+    });
+  }
+  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const zipFile = new File([zipBlob], zipFilename, { type: 'application/zip' });
+  if (navigator.canShare?.({ files: [zipFile] })) {
+    try {
+      await navigator.share({ title: 'Drainage Records', files: [zipFile] });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+  await saveFile(zipBlob, zipFilename, 'application/zip');
+}
+
 export async function saveRecordPhotos(record) {
   const fid = formatId(record.id);
   const photos = record.photos || [];

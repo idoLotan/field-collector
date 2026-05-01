@@ -1,11 +1,15 @@
 import RecordCard from './RecordCard';
-import { shareWhatsApp } from '../utils/export';
+import SurveyRecordCard from './SurveyRecordCard';
+import DrainageRecordCard from './DrainageRecordCard';
+import { shareWhatsApp, shareSurveyWhatsApp, shareDrainageWhatsApp } from '../utils/export';
 
-export default function RecordsTab({ active, records, onDelete, onDeleteAll, showToast, openLightbox, showOverlay }) {
+export default function RecordsTab({ active, records, onDelete, onDeleteAll, showToast, openLightbox, showOverlay, mode = 'signs' }) {
   const handleShareWhatsApp = async () => {
     if (!records.length) { showToast('⚠️ אין רשומות לשיתוף.'); return; }
     showToast('⏳ מכין קבצים לשיתוף…');
-    await shareWhatsApp(records, showToast);
+    if (mode === 'survey')   await shareSurveyWhatsApp(records);
+    else if (mode === 'drainage') await shareDrainageWhatsApp(records);
+    else await shareWhatsApp(records, showToast);
   };
 
   const handleDeleteAll = () => {
@@ -49,15 +53,24 @@ export default function RecordsTab({ active, records, onDelete, onDeleteAll, sho
           <p>אין רשומות עדיין.<br />עבור ל<strong>רשומה חדשה</strong> כדי להוסיף.</p>
         </div>
       ) : (
-        [...records].reverse().map(r => (
-          <RecordCard
-            key={r.id}
-            record={r}
-            onDelete={handleDelete}
-            openLightbox={openLightbox}
-            showToast={showToast}
-          />
-        ))
+        [...records].reverse().map(r =>
+          mode === 'survey' ? (
+            <SurveyRecordCard
+              key={r.id} record={r} onDelete={handleDelete}
+              openLightbox={openLightbox} showToast={showToast}
+            />
+          ) : mode === 'drainage' ? (
+            <DrainageRecordCard
+              key={r.id} record={r} onDelete={handleDelete}
+              openLightbox={openLightbox} showToast={showToast}
+            />
+          ) : (
+            <RecordCard
+              key={r.id} record={r} onDelete={handleDelete}
+              openLightbox={openLightbox} showToast={showToast}
+            />
+          )
+        )
       )}
     </div>
   );

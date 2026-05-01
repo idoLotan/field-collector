@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useCompass } from '../utils/useCompass';
+import CompassWidget from './CompassWidget';
 
 const DIRS = [
-  { key: 'north', label: 'צפון' },
-  { key: 'east',  label: 'מזרח' },
-  { key: 'south', label: 'דרום' },
-  { key: 'west',  label: 'מערב' },
+  { key: 'north', label: 'צפון', short: 'צ' },
+  { key: 'east',  label: 'מזרח', short: 'מ' },
+  { key: 'south', label: 'דרום',  short: 'ד' },
+  { key: 'west',  label: 'מערב', short: 'ע' },
 ];
 
 const SIGNS = ['301', '303', '306', '214'];
@@ -33,37 +35,26 @@ function SignImg({ sign }) {
   const [broken, setBroken] = useState(false);
   if (broken) return <div className="rb-sign-fallback">{sign}</div>;
   return (
-    <img
-      src={`/signs/${sign}.png`}
-      className="rb-sign-img"
-      alt={sign}
-      onError={() => setBroken(true)}
-    />
+    <img src={`/signs/${sign}.png`} className="rb-sign-img" alt={sign}
+      onError={() => setBroken(true)} />
   );
 }
 
 function StatusBtn({ sign, status, onChange, menuUp, menuLeft }) {
   const [open, setOpen] = useState(false);
   const color = DOT_COLOR[status] || DOT_COLOR[''];
-
   return (
     <div className="rb-sbwrap">
-      <button
-        className={`rb-sb${status ? ' rb-sb-set' : ''}`}
-        onClick={() => setOpen(o => !o)}
-        title={status || 'בחר סטטוס'}
-      >
+      <button className={`rb-sb${status ? ' rb-sb-set' : ''}`}
+        onClick={() => setOpen(o => !o)} title={status || 'בחר סטטוס'}>
         <span className="rb-sdot" style={{ background: color }} />
         <span className="rb-sarr">{open ? '▴' : '▾'}</span>
       </button>
       {open && (
         <div className={`rb-menu${menuUp ? ' rb-menu-up' : ''}${menuLeft ? ' rb-menu-left' : ''}`}>
           {STATUSES.map(s => (
-            <button
-              key={s}
-              className={`rb-mitem${status === s ? ' rb-mitem-on' : ''}`}
-              onClick={() => { onChange(sign, status === s ? '' : s); setOpen(false); }}
-            >
+            <button key={s} className={`rb-mitem${status === s ? ' rb-mitem-on' : ''}`}
+              onClick={() => { onChange(sign, status === s ? '' : s); setOpen(false); }}>
               <span className="rb-mdot" style={{ background: DOT_COLOR[s] }} />
               {s}
             </button>
@@ -83,13 +74,9 @@ function DirPanel({ dirKey, label, data, onChange, menuUp, menuLeft }) {
         {SIGNS.map(sign => (
           <div key={sign} className="rb-sign-row">
             <SignImg sign={sign} />
-            <StatusBtn
-              sign={sign}
-              status={data?.[sign] || ''}
+            <StatusBtn sign={sign} status={data?.[sign] || ''}
               onChange={(s, val) => onChange(dirKey, s, val)}
-              menuUp={menuUp}
-              menuLeft={menuLeft}
-            />
+              menuUp={menuUp} menuLeft={menuLeft} />
           </div>
         ))}
       </div>
@@ -98,11 +85,20 @@ function DirPanel({ dirKey, label, data, onChange, menuUp, menuLeft }) {
 }
 
 export default function RoundaboutModal({ open, data, onChange, onClose }) {
+  const { heading, active: compassActive, toggle: toggleCompass } = useCompass();
+
   if (!open) return null;
 
   const rb = data || EMPTY_RB;
+  const rbType = rb._type || '4';
+
   const set = (dir, sign, val) =>
     onChange({ ...rb, [dir]: { ...rb[dir], [sign]: val } });
+
+  const setType = (t) =>
+    onChange({ ...rb, _type: t });
+
+  const circleImg = rbType === '3' ? '/signs/square3.png' : '/signs/square.png';
 
   return (
     <div className="rb-overlay" onClick={onClose}>
@@ -111,6 +107,18 @@ export default function RoundaboutModal({ open, data, onChange, onClose }) {
         <div className="rb-head">
           <h3>כיכר — סיווג תמרורים</h3>
           <button className="rb-x" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Type selector */}
+        <div className="rb-type-row">
+          <button className={`rb-type-btn${rbType === '4' ? ' active' : ''}`}
+            onClick={() => setType('4')}>
+            4 כניסות
+          </button>
+          <button className={`rb-type-btn${rbType === '3' ? ' active' : ''}`}
+            onClick={() => setType('3')}>
+            3 כניסות
+          </button>
         </div>
 
         <div className="rb-legend">
@@ -132,7 +140,13 @@ export default function RoundaboutModal({ open, data, onChange, onClose }) {
               menuUp={false} menuLeft={false} />
 
             <div className="rb-circle-wrap">
-              <img src="/signs/square.png" className="rb-circle-img" alt="כיכר" />
+              <img src={circleImg} className="rb-circle-img" alt="כיכר" />
+              <div className="rb-compass-wrap">
+                {compassActive
+                  ? <CompassWidget heading={heading} size={48} />
+                  : <button className="rb-compass-btn" onClick={() => toggleCompass()}>🧭</button>
+                }
+              </div>
             </div>
 
             <DirPanel dirKey="east" label="מזרח" data={rb.east} onChange={set}

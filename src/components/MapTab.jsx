@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { formatId } from '../utils/formatters';
+import { getNextId, getSurveyNextId } from '../utils/storage';
+import { useCompass } from '../utils/useCompass';
+import CompassWidget from './CompassWidget';
 
 const userIcon = L.divIcon({
   className: '',
   html: `<div style="width:18px;height:18px;border-radius:50%;background:#1d4ed8;border:3px solid #fff;box-shadow:0 0 0 3px rgba(29,78,216,.35);"></div>`,
   iconSize: [18, 18],
   iconAnchor: [9, 9],
+});
+
+const pendingIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:22px;height:22px;border-radius:50%;background:#f59e0b;border:3px solid #fff;box-shadow:0 0 0 3px rgba(245,158,11,.4);"></div>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
 });
 
 function makeRecordIcon(fid, isLast = false) {
@@ -30,11 +40,31 @@ function MapController({ active }) {
   return null;
 }
 
-export default function MapTab({ active, records, showToast, onUpdateRecord }) {
+function MapClickHandler({ addMode, onMapClick }) {
+  useMapEvents({
+    click(e) {
+      if (addMode) onMapClick(e.latlng);
+    },
+  });
+  return null;
+}
+
+const SIGNS_STATUSES  = ['תקין', 'לא תקין', 'תמרור להצבה'];
+const SURVEY_STATUSES = ['תקין', 'טעון טיפול', 'הרוס/נטוש'];
+
+export default function MapTab({ active, records, showToast, onUpdateRecord, onSaved, mode }) {
   const mapRef = useRef(null);
-  const [userPos, setUserPos] = useState(null);
+  const [userPos, setUserPos]           = useState(null);
   const [userAccuracy, setUserAccuracy] = useState(0);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [addMode, setAddMode]           = useState(false);
+  const [pendingPoint, setPendingPoint] = useState(null);
+  const [pendingNotes, setPendingNotes] = useState('');
+  const [pendingStatus, setPendingStatus] = useState('');
+
+  const { heading, active: compassActive, toggle: toggleCompass } = useCompass();
+
+  const statusOptions = mode === 'survey' ? SURVEY_STATUSES : SIGNS_STATUSES;
 
   const goToMyLocation = (showError = true) => {
     if (!navigator.geolocation) {
@@ -70,6 +100,11 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
     }
   }, [active]);
 
+  // Cancel add mode when tab becomes inactive
+  useEffect(() => {
+    if (!active) cancelAdd();
+  }, [active]);
+
   const recordsWithCoords = records.filter(r => r.lat && r.lon);
   const lastRecordId = recordsWithCoords.length
     ? Math.max(...recordsWithCoords.map(r => r.id))
@@ -84,6 +119,42 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
     showToast('✅ קואורדינטות עודכנו');
   };
 
+  const cancelAdd = () => {
+    setAddMode(false);
+    setPendingPoint(null);
+    setPendingNotes('');
+    setPendingStatus('');
+  };
+
+  const handleMapClick = (latlng) => {
+    setPendingPoint(latlng);
+  };
+
+  const handleSavePoint = () => {
+    if (!pendingPoint) { showToast('❌ לחץ על המפה לבחירת מיקום'); return; }
+    const now = new Date();
+    const date = now.toLocaleDateString('he-IL');
+    const time = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    const lat  = pendingPoint.lat.toFixed(6);
+    const lon  = pendingPoint.lng.toFixed(6);
+    const address = `${lat}, ${lon}`;
+
+    let rec;
+    if (mode === 'survey') {
+      const id = getSurveyNextId();
+      rec = { id, address, lat, lon, notes: pendingNotes, condition: pendingStatus,
+              photos: [], date, time, propertyType: '', residents: '', ageGroup: '',
+              tenancy: '', ownerId: '', ownerName: '' };
+    } else {
+      const id = getNextId();
+      rec = { id, address, lat, lon, notes: pendingNotes, category: pendingStatus, photos: [], date, time };
+    }
+
+    onSaved(rec);
+    cancelAdd();
+    showToast('✅ נקודה נשמרה');
+  };
+
   return (
     <div className={`view${active ? ' active' : ''}`} id="view-map">
       <MapContainer
@@ -93,6 +164,7 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
         style={{ width: '100%', height: '100%' }}
         zoomControl={true}
         ref={mapRef}
+        className={addMode ? 'map-add-cursor' : ''}
         whenReady={() => {
           goToMyLocation(false);
           setTimeout(() => mapRef.current?.invalidateSize(), 100);
@@ -104,6 +176,7 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
           maxZoom={19}
         />
         <MapController active={active} />
+        <MapClickHandler addMode={addMode} onMapClick={handleMapClick} />
 
         {userPos && (
           <>
@@ -121,6 +194,10 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
           </>
         )}
 
+        {pendingPoint && (
+          <Marker position={[pendingPoint.lat, pendingPoint.lng]} icon={pendingIcon} />
+        )}
+
         {recordsWithCoords.map(r => {
           const fid = formatId(r.id);
           const isLast = r.id === lastRecordId;
@@ -130,14 +207,14 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
               key={r.id}
               position={[parseFloat(r.lat), parseFloat(r.lon)]}
               icon={makeRecordIcon(fid, isLast)}
-              draggable={true}
-              eventHandlers={{
+              draggable={!!onUpdateRecord}
+              eventHandlers={onUpdateRecord ? {
                 dragend: (e) => {
                   const { lat, lng } = e.target.getLatLng();
                   onUpdateRecord(r.id, lat.toFixed(6), lng.toFixed(6));
                   showToast(`✅ ${fid} עודכן`);
                 },
-              }}
+              } : {}}
             >
               <Popup maxWidth={260} onClose={() => { if (isEditing) setEditingRecord(null); }}>
                 <span className="map-popup-id" style={isLast ? { background: '#dc2626' } : {}}>
@@ -150,13 +227,16 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
                     {r.notes.slice(0, 120)}{r.notes.length > 120 ? '…' : ''}
                   </div>
                 )}
+                {(r.condition || r.category) && (
+                  <div className="map-popup-status">{r.condition || r.category}</div>
+                )}
                 {r.photos?.length > 0 && (
                   <div style={{ marginTop: '4px', fontSize: '.75rem', color: 'var(--blue)' }}>
                     📷 {r.photos.length} photo{r.photos.length !== 1 ? 's' : ''}
                   </div>
                 )}
 
-                {isEditing ? (
+                {onUpdateRecord && (isEditing ? (
                   <div className="map-popup-edit">
                     <div className="map-popup-edit-row">
                       <label>קו רוחב</label>
@@ -188,17 +268,75 @@ export default function MapTab({ active, records, showToast, onUpdateRecord }) {
                   >
                     ✏️ ערוך מיקום
                   </button>
-                )}
+                ))}
               </Popup>
             </Marker>
           );
         })}
       </MapContainer>
 
+      {compassActive && (
+        <div className="map-compass">
+          <CompassWidget heading={heading} size={56} />
+        </div>
+      )}
+
+      {addMode && (
+        <div className="map-add-banner">
+          {pendingPoint ? '✅ מיקום נבחר — מלא פרטים למטה' : '👆 לחץ על המפה לבחירת מיקום'}
+        </div>
+      )}
+
       <div className="map-fab-group">
+        {onSaved && (
+          <button
+            className={`map-fab map-fab-add${addMode ? ' active' : ''}`}
+            onClick={() => addMode ? cancelAdd() : setAddMode(true)}
+            title={addMode ? 'בטל הוספה' : 'הוסף נקודה'}
+          >
+            {addMode ? '✕' : '＋'}
+          </button>
+        )}
         <button className="map-fab map-fab-records" onClick={plotRecordMarkers} title="הצג כל הרשומות">📋</button>
         <button className="map-fab map-fab-locate" onClick={() => goToMyLocation(true)} title="המיקום שלי">📍</button>
+        <button
+          className={`map-fab map-fab-compass${compassActive ? ' active' : ''}`}
+          onClick={() => toggleCompass(showToast)}
+          title="מצפן"
+        >🧭</button>
       </div>
+
+      {addMode && (
+        <div className={`map-add-sheet${pendingPoint ? ' visible' : ''}`}>
+          <div className="map-add-sheet-title">הוספת נקודה ידנית</div>
+
+          <div className="map-add-chips-label">סטטוס</div>
+          <div className="map-add-chips">
+            {statusOptions.map(s => (
+              <button
+                key={s}
+                className={`map-add-chip${pendingStatus === s ? ' active' : ''}`}
+                onClick={() => setPendingStatus(prev => prev === s ? '' : s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          <textarea
+            className="map-add-notes"
+            placeholder="הערות (אופציונלי)…"
+            value={pendingNotes}
+            onChange={e => setPendingNotes(e.target.value)}
+            rows={2}
+          />
+
+          <div className="map-add-actions">
+            <button className="map-add-btn-save" onClick={handleSavePoint}>✅ שמור נקודה</button>
+            <button className="map-add-btn-cancel" onClick={cancelAdd}>ביטול</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
