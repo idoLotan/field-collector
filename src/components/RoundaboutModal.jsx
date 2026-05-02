@@ -107,71 +107,64 @@ export default function RoundaboutModal({ open, data, onChange, onClose, onSwitc
   const circleImg = rbType === '3' ? '/signs/square3.png' : '/signs/square.png';
 
   return (
-    <div className="rb-overlay" onClick={onClose}>
-      <div className="rb-modal" onClick={e => e.stopPropagation()}>
+    <div className="rb-page">
 
-        <div className="rb-head">
-          <h3>כיכר — סיווג תמרורים</h3>
-          <button className="rb-x" onClick={onClose}>✕</button>
-        </div>
+      {/* Type selector */}
+      <div className="rb-type-row">
+        <button className={`rb-type-btn${rbType === '4' ? ' active' : ''}`}
+          onClick={() => setType('4')}>
+          4 כניסות
+        </button>
+        <button className={`rb-type-btn${rbType === '3' ? ' active' : ''}`}
+          onClick={() => setType('3')}>
+          3 כניסות
+        </button>
+      </div>
 
-        {/* Type selector */}
-        <div className="rb-type-row">
-          <button className={`rb-type-btn${rbType === '4' ? ' active' : ''}`}
-            onClick={() => setType('4')}>
-            4 כניסות
-          </button>
-          <button className={`rb-type-btn${rbType === '3' ? ' active' : ''}`}
-            onClick={() => setType('3')}>
-            3 כניסות
-          </button>
-        </div>
+      <div className="rb-legend">
+        {STATUSES.map(s => (
+          <span key={s} className="rb-leg-item">
+            <span className="rb-ldot" style={{ background: DOT_COLOR[s] }} />
+            {s}
+          </span>
+        ))}
+        <button className="rb-all-ok-btn" onClick={setAllOk}>✓ הכל תקין</button>
+      </div>
 
-        <div className="rb-legend">
-          {STATUSES.map(s => (
-            <span key={s} className="rb-leg-item">
-              <span className="rb-ldot" style={{ background: DOT_COLOR[s] }} />
-              {s}
-            </span>
-          ))}
-          <button className="rb-all-ok-btn" onClick={setAllOk}>✓ הכל תקין</button>
-        </div>
+      <div className="rb-diagram">
 
-        <div className="rb-diagram">
+        <DirPanel dirKey="north" label="צפון" data={rb.north} onChange={set}
+          menuUp={false} menuLeft={false} />
 
-          <DirPanel dirKey="north" label="צפון" data={rb.north} onChange={set}
+        <div className="rb-midrow">
+          <DirPanel dirKey="west" label="מערב" data={rb.west} onChange={set}
             menuUp={false} menuLeft={false} />
 
-          <div className="rb-midrow">
-            <DirPanel dirKey="west" label="מערב" data={rb.west} onChange={set}
-              menuUp={false} menuLeft={false} />
-
-            <div className="rb-circle-wrap">
-              <img src={circleImg} className="rb-circle-img" alt="כיכר" />
-              <div className="rb-compass-wrap">
-                {compassActive
-                  ? <CompassWidget heading={heading} size={48} />
-                  : <button className="rb-compass-btn" onClick={() => toggleCompass()}>🧭</button>
-                }
-              </div>
+          <div className="rb-circle-wrap">
+            <img src={circleImg} className="rb-circle-img" alt="כיכר" />
+            <div className="rb-compass-wrap">
+              {compassActive
+                ? <CompassWidget heading={heading} size={48} />
+                : <button className="rb-compass-btn" onClick={() => toggleCompass()}>🧭</button>
+              }
             </div>
-
-            <DirPanel dirKey="east" label="מזרח" data={rb.east} onChange={set}
-              menuUp={false} menuLeft={true} />
           </div>
 
-          <DirPanel dirKey="south" label="דרום" data={rb.south} onChange={set}
-            menuUp={true} menuLeft={false} />
-
+          <DirPanel dirKey="east" label="מזרח" data={rb.east} onChange={set}
+            menuUp={false} menuLeft={true} />
         </div>
 
-        <div className="rb-foot">
-          <div className="rb-foot-modes">
-            <button className="rb-mode-switch-btn" onClick={onSwitchToRapid}>📷 צילום רציף</button>
-            <button className="rb-mode-switch-btn" onClick={onSwitchToCards}>🎯 תמרור תמרור</button>
-          </div>
-          <button className="btn btn-primary" onClick={onClose}>סגור</button>
+        <DirPanel dirKey="south" label="דרום" data={rb.south} onChange={set}
+          menuUp={true} menuLeft={false} />
+
+      </div>
+
+      <div className="rb-foot">
+        <div className="rb-foot-modes">
+          <button className="rb-mode-switch-btn" onClick={onSwitchToRapid}>📷 צילום רציף</button>
+          <button className="rb-mode-switch-btn" onClick={onSwitchToCards}>🎯 תמרור תמרור</button>
         </div>
+        <button className="btn btn-primary" onClick={onClose}>סגור</button>
       </div>
     </div>
   );

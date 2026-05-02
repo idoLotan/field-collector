@@ -435,8 +435,10 @@ textarea { min-height: 90px; resize: vertical; }
 .map-fab:active { transform: scale(.93); opacity: .85; }
 .map-fab-locate  { background: var(--blue);  color: #fff; }
 .map-fab-records { background: var(--green); color: #fff; }
-.map-fab-add     { background: #f59e0b; color: #fff; font-size: 1.4rem; line-height: 1; }
+.map-fab-add       { background: #f59e0b; color: #fff; font-size: 1.4rem; line-height: 1; }
 .map-fab-add.active { background: #6b7280; }
+.map-fab-satellite  { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
+.map-fab-satellite.active { background: #1e293b; border-color: #1e293b; }
 #mapContainer.map-add-cursor { cursor: crosshair !important; }
 .map-add-banner {
   position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
@@ -526,7 +528,7 @@ textarea { min-height: 90px; resize: vertical; }
 .map-popup-btn-save { background: var(--green); color: #fff; flex: 1; }
 .map-popup-btn-cancel { background: var(--gray-lt); color: var(--gray); flex: 1; }
 
-/* ── Form home / wizard ── */
+/* ── Form home ── */
 .form-home-header { text-align: center; padding: 24px 0 16px; }
 .form-home-header h2 { font-size: 1.5rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
 .form-home-header p  { font-size: .9rem; color: var(--gray); }
@@ -536,26 +538,46 @@ textarea { min-height: 90px; resize: vertical; }
   gap: 12px; margin-bottom: 20px;
 }
 .form-tile {
+  position: relative;
   background: #fff; border: 1.5px solid var(--border);
-  border-radius: 16px; padding: 32px 12px 26px;
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  cursor: pointer; position: relative;
-  box-shadow: 0 1px 4px rgba(0,0,0,.07);
-  transition: border-color .15s, box-shadow .15s;
-  min-height: 180px; justify-content: center;
+  border-radius: 20px; padding: 28px 12px 22px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  cursor: pointer; min-height: 160px; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  transition: border-color .15s, box-shadow .15s, transform .1s;
 }
-.form-tile:active { transform: scale(.97); }
-.form-tile.done { border-color: var(--blue-lt); }
-.form-tile-icon { width: 64px; height: 64px; color: var(--blue); }
+.form-tile:active { transform: scale(.96); }
+.form-tile.done {
+  border-color: var(--blue); background: #f0f4ff;
+  box-shadow: 0 2px 12px rgba(29,78,216,.12);
+}
+
+.form-tile-icon {
+  width: 60px; height: 60px; border-radius: 16px;
+  background: #e8eeff; color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  padding: 13px; transition: background .15s;
+}
 .form-tile-icon svg { width: 100%; height: 100%; }
-.form-tile-label { font-size: .95rem; font-weight: 700; color: var(--text); }
-.form-tile-check {
+.form-tile.done .form-tile-icon { background: var(--blue); color: #fff; }
+
+.form-tile-label {
+  font-size: .92rem; font-weight: 700; color: var(--text);
+}
+.form-tile-sub {
+  font-size: .72rem; color: var(--blue);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%; font-weight: 600;
+}
+
+.form-tile-badge {
   position: absolute; top: 10px; left: 10px;
-  background: var(--blue); color: #fff;
+  background: var(--green); color: #fff;
   border-radius: 50%; width: 22px; height: 22px;
-  font-size: .72rem; font-weight: 800;
+  font-size: .7rem; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
 }
+
 .step-save-btn { margin-top: 4px; }
 
 /* ── Address step redesign ── */
@@ -854,17 +876,8 @@ textarea { min-height: 90px; resize: vertical; }
 }
 
 /* ── Roundabout modal ── */
-.rb-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.55); z-index: 400;
-  display: flex; align-items: center; justify-content: center;
-  padding: 6px;
-}
-.rb-modal {
-  background: #fff; border-radius: 18px;
-  width: 100%; max-width: 520px;
-  max-height: 96vh; display: flex; flex-direction: column;
-  overflow: hidden;
+.rb-page {
+  width: 100%; display: flex; flex-direction: column;
 }
 .rb-head {
   display: flex; align-items: center; justify-content: space-between;

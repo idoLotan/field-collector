@@ -61,7 +61,6 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
   const [signCode, setSignCode]             = useState(draft?.signCode || '');
   const [signPickerOpen, setSignPickerOpen] = useState(false);
   const [roundabout, setRoundabout]         = useState(draft?.roundabout || null);
-  const [roundaboutOpen, setRoundaboutOpen]   = useState(false);
   const [wizardOpen, setWizardOpen]           = useState(false);
   const [wizardInitialMode, setWizardInitialMode] = useState('cards');
   const [addrPairs, setAddrPairs]           = useState(() => loadAddrPairs());
@@ -167,24 +166,28 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
 
       <div className="form-tiles">
         <button className={`form-tile${addrDone ? ' done' : ''}`} onClick={() => setStep('address')}>
+          {addrDone && <span className="form-tile-badge">✓</span>}
           <div className="form-tile-icon"><IconLocation /></div>
           <span className="form-tile-label">כתובת ומיקום</span>
-          {addrDone && <span className="form-tile-check">✓</span>}
+          {addrDone && <span className="form-tile-sub">{addrValue || '📍 GPS'}</span>}
         </button>
         <button className={`form-tile${catDone ? ' done' : ''}`} onClick={() => setStep('category')}>
+          {catDone && <span className="form-tile-badge">✓</span>}
           <div className="form-tile-icon"><IconTag /></div>
           <span className="form-tile-label">סיווג</span>
-          {catDone && <span className="form-tile-check">✓</span>}
+          {catDone && <span className="form-tile-sub">{category}</span>}
         </button>
         <button className={`form-tile${notesDone ? ' done' : ''}`} onClick={() => setStep('notes')}>
+          {notesDone && <span className="form-tile-badge">✓</span>}
           <div className="form-tile-icon"><IconNotes /></div>
           <span className="form-tile-label">הערות</span>
-          {notesDone && <span className="form-tile-check">✓</span>}
+          {notesDone && <span className="form-tile-sub">{notes.slice(0, 22)}{notes.length > 22 ? '…' : ''}</span>}
         </button>
         <button className={`form-tile${photosDone ? ' done' : ''}`} onClick={() => setStep('photos')}>
+          {photosDone && <span className="form-tile-badge">{stagingPhotos.length}</span>}
           <div className="form-tile-icon"><IconCamera /></div>
           <span className="form-tile-label">תמונות</span>
-          {photosDone && <span className="form-tile-check">{stagingPhotos.length}</span>}
+          {photosDone && <span className="form-tile-sub">{stagingPhotos.length} תמונות</span>}
         </button>
       </div>
 
@@ -325,7 +328,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
 
       <button
         className={`rb-trigger${hasRbData(roundabout) ? ' rb-trigger-on' : ''}`}
-        onClick={() => { if (!roundabout) setRoundabout(EMPTY_RB); setRoundaboutOpen(true); }}
+        onClick={() => { if (!roundabout) setRoundabout(EMPTY_RB); setStep('roundabout'); }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
              strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
@@ -434,27 +437,40 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
   );
 
   /* ════════════════════════════════════════
+     ROUNDABOUT SCREEN (inline step)
+  ════════════════════════════════════════ */
+  const roundaboutScreen = (
+    <>
+      <div className="step-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2>כיכר — סיווג תמרורים</h2>
+        <button className="rb-x" onClick={() => setStep('category')}>✕</button>
+      </div>
+      <RoundaboutModal
+        open
+        data={roundabout}
+        onChange={setRoundabout}
+        onClose={() => setStep('category')}
+        onSwitchToCards={() => { setStep(null); setWizardInitialMode('cards'); setWizardOpen(true); }}
+        onSwitchToRapid={() => { setStep(null); setWizardInitialMode('rapid'); setWizardOpen(true); }}
+      />
+    </>
+  );
+
+  /* ════════════════════════════════════════
      RENDER
   ════════════════════════════════════════ */
   return (
     <div className={`view${active ? ' active' : ''}`} id="view-form" ref={viewRef}>
-      {step === null     && homeScreen}
-      {step === 'address'  && addressScreen}
-      {step === 'category' && categoryScreen}
-      {step === 'notes'    && notesScreen}
-      {step === 'photos'   && photosScreen}
+      {step === null          && homeScreen}
+      {step === 'address'     && addressScreen}
+      {step === 'category'    && categoryScreen}
+      {step === 'roundabout'  && roundaboutScreen}
+      {step === 'notes'       && notesScreen}
+      {step === 'photos'      && photosScreen}
       <SignPicker
         open={signPickerOpen}
         onSelect={(code) => { setSignCode(code); setSignNumber(code); }}
         onClose={() => setSignPickerOpen(false)}
-      />
-      <RoundaboutModal
-        open={roundaboutOpen}
-        data={roundabout}
-        onChange={setRoundabout}
-        onClose={() => setRoundaboutOpen(false)}
-        onSwitchToCards={() => { setRoundaboutOpen(false); setWizardInitialMode('cards'); setWizardOpen(true); }}
-        onSwitchToRapid={() => { setRoundaboutOpen(false); setWizardInitialMode('rapid'); setWizardOpen(true); }}
       />
       <RoundaboutWizard
         open={wizardOpen}

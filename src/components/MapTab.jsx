@@ -57,6 +57,7 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
   const [userPos, setUserPos]           = useState(null);
   const [userAccuracy, setUserAccuracy] = useState(0);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [satellite, setSatellite]       = useState(false);
   const [addMode, setAddMode]           = useState(false);
   const [pendingPoint, setPendingPoint] = useState(null);
   const [pendingNotes, setPendingNotes] = useState('');
@@ -170,11 +171,21 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
           setTimeout(() => mapRef.current?.invalidateSize(), 100);
         }}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          maxZoom={19}
-        />
+        {satellite ? (
+          <TileLayer
+            key="sat"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution="© Esri"
+            maxZoom={19}
+          />
+        ) : (
+          <TileLayer
+            key="osm"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            maxZoom={19}
+          />
+        )}
         <MapController active={active} />
         <MapClickHandler addMode={addMode} onMapClick={handleMapClick} />
 
@@ -304,6 +315,11 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
           onClick={() => toggleCompass(showToast)}
           title="מצפן"
         >🧭</button>
+        <button
+          className={`map-fab map-fab-satellite${satellite ? ' active' : ''}`}
+          onClick={() => setSatellite(s => !s)}
+          title={satellite ? 'מפה רגילה' : 'תצלום לווין'}
+        >🛰️</button>
       </div>
 
       {addMode && (
