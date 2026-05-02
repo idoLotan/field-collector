@@ -9,7 +9,7 @@ const DIRS = [
   { key: 'west',  label: 'מערב', short: 'ע' },
 ];
 
-const SIGNS = ['301', '303', '306', '214'];
+const SIGNS = ['301', '303', '306', '214', '213'];
 const STATUSES = ['תקין', 'לא תקין', 'חסר'];
 const DOT_COLOR = { 'תקין': '#16a34a', 'לא תקין': '#dc2626', 'חסר': '#ea580c', '': '#d1d5db' };
 
@@ -84,7 +84,7 @@ function DirPanel({ dirKey, label, data, onChange, menuUp, menuLeft }) {
   );
 }
 
-export default function RoundaboutModal({ open, data, onChange, onClose }) {
+export default function RoundaboutModal({ open, data, onChange, onClose, onSwitchToCards, onSwitchToRapid }) {
   const { heading, active: compassActive, toggle: toggleCompass } = useCompass();
 
   if (!open) return null;
@@ -97,6 +97,12 @@ export default function RoundaboutModal({ open, data, onChange, onClose }) {
 
   const setType = (t) =>
     onChange({ ...rb, _type: t });
+
+  const setAllOk = () =>
+    onChange({
+      ...rb,
+      ...Object.fromEntries(DIRS.map(d => [d.key, Object.fromEntries(SIGNS.map(s => [s, 'תקין']))]))
+    });
 
   const circleImg = rbType === '3' ? '/signs/square3.png' : '/signs/square.png';
 
@@ -128,6 +134,7 @@ export default function RoundaboutModal({ open, data, onChange, onClose }) {
               {s}
             </span>
           ))}
+          <button className="rb-all-ok-btn" onClick={setAllOk}>✓ הכל תקין</button>
         </div>
 
         <div className="rb-diagram">
@@ -159,6 +166,10 @@ export default function RoundaboutModal({ open, data, onChange, onClose }) {
         </div>
 
         <div className="rb-foot">
+          <div className="rb-foot-modes">
+            <button className="rb-mode-switch-btn" onClick={onSwitchToRapid}>📷 צילום רציף</button>
+            <button className="rb-mode-switch-btn" onClick={onSwitchToCards}>🎯 תמרור תמרור</button>
+          </div>
           <button className="btn btn-primary" onClick={onClose}>סגור</button>
         </div>
       </div>

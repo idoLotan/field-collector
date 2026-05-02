@@ -6,6 +6,7 @@ import PhotosField from './PhotosField';
 import { loadDraft, persistDraft, clearDraft, loadAddrPairs, getNextId } from '../utils/storage';
 import SignPicker, { SIGNS } from './SignPicker';
 import RoundaboutModal, { EMPTY_RB, hasRbData, formatRbForExcel } from './RoundaboutModal';
+import RoundaboutWizard from './RoundaboutWizard';
 
 /* ── SVG icons ── */
 function IconLocation() {
@@ -43,7 +44,7 @@ function IconCamera() {
   );
 }
 
-export default function FormTab({ active, onSaved, showToast, openLightbox, onGoToMap }) {
+export default function FormTab({ active, onSaved, onSavedBatch, showToast, openLightbox, onGoToMap }) {
   const draft = useMemo(() => loadDraft(), []);
 
   const [addrMode, setAddrMode]             = useState(draft?.addressMode || 'list');
@@ -60,7 +61,9 @@ export default function FormTab({ active, onSaved, showToast, openLightbox, onGo
   const [signCode, setSignCode]             = useState(draft?.signCode || '');
   const [signPickerOpen, setSignPickerOpen] = useState(false);
   const [roundabout, setRoundabout]         = useState(draft?.roundabout || null);
-  const [roundaboutOpen, setRoundaboutOpen] = useState(false);
+  const [roundaboutOpen, setRoundaboutOpen]   = useState(false);
+  const [wizardOpen, setWizardOpen]           = useState(false);
+  const [wizardInitialMode, setWizardInitialMode] = useState('cards');
   const [addrPairs, setAddrPairs]           = useState(() => loadAddrPairs());
   const [formKey, setFormKey]               = useState(0);
   const [step, setStep]                     = useState(null); // null = home
@@ -450,6 +453,22 @@ export default function FormTab({ active, onSaved, showToast, openLightbox, onGo
         data={roundabout}
         onChange={setRoundabout}
         onClose={() => setRoundaboutOpen(false)}
+        onSwitchToCards={() => { setRoundaboutOpen(false); setWizardInitialMode('cards'); setWizardOpen(true); }}
+        onSwitchToRapid={() => { setRoundaboutOpen(false); setWizardInitialMode('rapid'); setWizardOpen(true); }}
+      />
+      <RoundaboutWizard
+        open={wizardOpen}
+        initialMode={wizardInitialMode}
+        onClose={() => setWizardOpen(false)}
+        address={getAddressValue() || '—'}
+        lat={capturedLat}
+        lon={capturedLon}
+        openLightbox={openLightbox}
+        showToast={showToast}
+        onSavedBatch={(recs) => {
+          onSavedBatch(recs);
+          showToast(`✅ ${recs.length} רשומות נשמרו!`);
+        }}
       />
     </div>
   );

@@ -39,6 +39,7 @@ export default function App() {
   // ── Signs records ──
   const updateRecords = useCallback((r) => { persistRecords(r); setRecords(r); }, []);
   const handleSaved        = useCallback((rec) => updateRecords([...records, rec]), [records, updateRecords]);
+  const handleSavedBatch   = useCallback((recs) => updateRecords([...records, ...recs]), [records, updateRecords]);
   const handleDelete       = useCallback((id)  => updateRecords(records.filter(r => r.id !== id)), [records, updateRecords]);
   const handleDeleteAll    = useCallback(()    => updateRecords([]), [updateRecords]);
   const handleUpdateRecord = useCallback((id, lat, lon) =>
@@ -81,6 +82,7 @@ export default function App() {
         <FormTab
           active={activeTab === 'form'}
           onSaved={handleSaved}
+          onSavedBatch={handleSavedBatch}
           showToast={showToast}
           openLightbox={setLightboxSrc}
           onGoToMap={() => setActiveTab('map')}

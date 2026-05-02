@@ -8,7 +8,7 @@ const RB_DIRS = [
   { key: 'south', label: 'דרום' },
   { key: 'west',  label: 'מערב' },
 ];
-const RB_SIGNS = ['301', '303', '306', '214'];
+const RB_SIGNS = ['301', '303', '306', '214', '213'];
 
 function buildWorkbook(records) {
   const rows = [['ID', 'Address', 'Latitude', 'Longitude', 'Notes', 'Category', 'כיוון', 'תמרור', 'סטטוס', 'Date', 'Time', 'Photos']];
@@ -44,7 +44,7 @@ function buildWorkbook(records) {
     } else {
       rows.push([
         formatId(r.id), r.address, r.lat, r.lon,
-        r.notes, r.category || '', '', r.signNumber || '', r.signCode || '',
+        r.notes, r.category || '', r.signDirection || '', r.signNumber || '', r.signCode || '',
         r.date, r.time, photoNote,
       ]);
     }

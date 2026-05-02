@@ -26,6 +26,9 @@ export default function RecordCard({ record, onDelete, openLightbox, showToast }
         <span className="rec-datetime">{record.date} {record.time}</span>
       </div>
 
+      {record.signDirection && (
+        <div className="rec-sign-info">🔵 {record.signDirection} · תמרור {record.signNumber}</div>
+      )}
       {record.lat && <div className="rec-coords">📍 {record.lat}, {record.lon}</div>}
       {record.notes && <div className="rec-notes">{record.notes}</div>}
 
