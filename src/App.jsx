@@ -76,8 +76,6 @@ export default function App() {
         </select>
       </div>
 
-      <TabNav activeTab={activeTab} onSwitch={setActiveTab} />
-
       {appMode === 'signs' ? (
         <FormTab
           active={activeTab === 'form'}
@@ -121,6 +119,8 @@ export default function App() {
         onUpdateRecord={appMode === 'signs' ? handleUpdateRecord : undefined}
         onSaved={appMode === 'survey' ? handleSurveySaved : appMode === 'drainage' ? handleDrainageSaved : handleSaved}
       />
+
+      <TabNav activeTab={activeTab} onSwitch={setActiveTab} />
 
       <Overlay overlay={overlay} onClose={() => setOverlay(null)} />
       <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
