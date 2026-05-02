@@ -166,33 +166,39 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
 
       <div className="form-tiles">
         <button className={`form-tile${addrDone ? ' done' : ''}`} onClick={() => setStep('address')}>
-          {addrDone && <span className="form-tile-badge">✓</span>}
+          <span className="form-tile-badge">{addrDone ? '✓' : ''}</span>
           <div className="form-tile-icon"><IconLocation /></div>
           <span className="form-tile-label">כתובת ומיקום</span>
-          {addrDone && <span className="form-tile-sub">{addrValue || '📍 GPS'}</span>}
+          <span className="form-tile-sub">{addrDone ? (addrValue || '📍 GPS פעיל') : ''}</span>
         </button>
         <button className={`form-tile${catDone ? ' done' : ''}`} onClick={() => setStep('category')}>
-          {catDone && <span className="form-tile-badge">✓</span>}
+          <span className="form-tile-badge">{catDone ? '✓' : ''}</span>
           <div className="form-tile-icon"><IconTag /></div>
           <span className="form-tile-label">סיווג</span>
-          {catDone && <span className="form-tile-sub">{category}</span>}
+          <span className="form-tile-sub">{catDone ? category : ''}</span>
         </button>
         <button className={`form-tile${notesDone ? ' done' : ''}`} onClick={() => setStep('notes')}>
-          {notesDone && <span className="form-tile-badge">✓</span>}
+          <span className="form-tile-badge">{notesDone ? '✓' : ''}</span>
           <div className="form-tile-icon"><IconNotes /></div>
           <span className="form-tile-label">הערות</span>
-          {notesDone && <span className="form-tile-sub">{notes.slice(0, 22)}{notes.length > 22 ? '…' : ''}</span>}
+          <span className="form-tile-sub">{notesDone ? `${notes.slice(0, 22)}${notes.length > 22 ? '…' : ''}` : ''}</span>
         </button>
         <button className={`form-tile${photosDone ? ' done' : ''}`} onClick={() => setStep('photos')}>
-          {photosDone && <span className="form-tile-badge">{stagingPhotos.length}</span>}
+          <span className="form-tile-badge">{photosDone ? stagingPhotos.length : ''}</span>
           <div className="form-tile-icon"><IconCamera /></div>
           <span className="form-tile-label">תמונות</span>
-          {photosDone && <span className="form-tile-sub">{stagingPhotos.length} תמונות</span>}
+          <span className="form-tile-sub">{photosDone ? `${stagingPhotos.length} תמונות` : ''}</span>
         </button>
       </div>
 
       <button className="btn btn-primary step-save-btn" onClick={saveRecord}>
-        שמור רשומה 💾
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+             strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        שמור רשומה
       </button>
     </>
   );

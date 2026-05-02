@@ -60,20 +60,22 @@ header .badge {
 /* ── Mode switcher (top dropdown) ── */
 .mode-switcher {
   display: flex; flex-shrink: 0; align-items: center;
-  padding: 6px 12px; border-bottom: 1px solid var(--gray-lt); background: #fff;
+  padding: 8px 14px 10px; background: #fff;
 }
 .mode-select {
-  flex: 1; padding: 7px 32px 7px 10px;
-  border: 1.5px solid var(--gray-lt); border-radius: 8px;
-  background: #f9fafb; font-size: .88rem; font-weight: 700; font-family: inherit;
+  flex: 1; padding: 11px 18px 11px 36px;
+  border: 1.5px solid #E5E7EB; border-radius: 14px;
+  background: #fff; font-size: .95rem; font-weight: 700; font-family: inherit;
   color: var(--text); cursor: pointer; appearance: none; -webkit-appearance: none;
+  box-shadow: 0 2px 8px rgba(15,23,42,.07);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: left 10px center; direction: rtl;
+  background-repeat: no-repeat; background-position: left 14px center; direction: rtl;
+  transition: border-color .15s, box-shadow .15s;
 }
-.mode-select:focus { outline: none; border-color: var(--blue-lt); }
-.mode-select-signs    { border-color: var(--blue);  color: var(--blue); }
-.mode-select-survey   { border-color: var(--green); color: var(--green); }
-.mode-select-drainage { border-color: var(--teal);  color: var(--teal); }
+.mode-select:focus { outline: none; border-color: #E5E7EB; box-shadow: 0 4px 12px rgba(15,23,42,.1); }
+.mode-select-signs    { color: var(--text); }
+.mode-select-survey   { color: var(--text); }
+.mode-select-drainage { color: var(--text); }
 
 /* ── Bottom navigation ── */
 .bottom-nav {
@@ -93,8 +95,8 @@ header .badge {
               padding .28s cubic-bezier(.4,0,.2,1);
 }
 .bottom-nav-btn.active {
-  background: var(--blue);
-  color: #fff;
+  background: #EEF2FF;
+  color: #2563EB;
   padding: 9px 26px;
 }
 .bottom-nav-btn:not(.active):active {
@@ -538,50 +540,69 @@ textarea { min-height: 90px; resize: vertical; }
 
 .form-tiles {
   display: grid; grid-template-columns: 1fr 1fr;
-  gap: 12px; margin-bottom: 20px;
+  gap: 16px; margin-bottom: 20px;
 }
 .form-tile {
   position: relative;
-  background: #fff; border: 1.5px solid var(--border);
-  border-radius: 20px; padding: 28px 12px 22px;
+  background: #fff;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 22px;
+  padding: 28px 12px 22px;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   cursor: pointer; min-height: 160px; justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,.06);
-  transition: border-color .15s, box-shadow .15s, transform .1s;
+  box-shadow: 0 6px 18px rgba(15,23,42,.08);
+  transition: border-color .2s, box-shadow .2s, transform .1s;
 }
-.form-tile:active { transform: scale(.96); }
+.form-tile:active { transform: scale(.97); }
 .form-tile.done {
-  border-color: var(--blue); background: #f0f4ff;
-  box-shadow: 0 2px 12px rgba(29,78,216,.12);
+  border-color: #2563EB;
+  background: #F4F7FF;
+  box-shadow: 0 8px 22px rgba(37,99,235,.14);
 }
 
 .form-tile-icon {
-  width: 60px; height: 60px; border-radius: 16px;
-  background: #e8eeff; color: var(--blue);
+  width: 62px; height: 62px; border-radius: 18px;
+  background: #F1F5F9; color: #2563EB;
   display: flex; align-items: center; justify-content: center;
-  padding: 13px; transition: background .15s;
+  padding: 13px; transition: background .2s;
 }
 .form-tile-icon svg { width: 100%; height: 100%; }
-.form-tile.done .form-tile-icon { background: var(--blue); color: #fff; }
+.form-tile.done .form-tile-icon { background: #EEF2FF; color: #2563EB; }
 
 .form-tile-label {
-  font-size: .92rem; font-weight: 700; color: var(--text);
+  font-size: .92rem; font-weight: 600; color: #111827;
 }
 .form-tile-sub {
-  font-size: .72rem; color: var(--blue);
+  font-size: .72rem; color: #2563EB;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 100%; font-weight: 600;
+  max-width: 100%; font-weight: 600; min-height: 1em;
 }
 
 .form-tile-badge {
-  position: absolute; top: 10px; left: 10px;
-  background: var(--green); color: #fff;
-  border-radius: 50%; width: 22px; height: 22px;
-  font-size: .7rem; font-weight: 800;
+  position: absolute; top: 12px; left: 12px;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid #D1D5DB; background: transparent;
+  color: transparent; font-size: 0;
   display: flex; align-items: center; justify-content: center;
+  transition: background .2s, border-color .2s, color .2s, font-size .15s;
+}
+.form-tile.done .form-tile-badge {
+  background: #2563EB; border-color: #2563EB;
+  color: #fff; font-size: .72rem; font-weight: 800;
 }
 
-.step-save-btn { margin-top: 4px; }
+.step-save-btn {
+  margin-top: 4px;
+  border-radius: 14px;
+  min-height: 54px;
+  background: #2563EB;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  box-shadow: 0 6px 20px rgba(37,99,235,.38);
+  gap: 10px;
+}
+.step-save-btn:active { opacity: .9; transform: scale(.985); }
 
 /* ── Address step redesign ── */
 .addr-mode-lg { display: flex; gap: 10px; margin-bottom: 14px; }
