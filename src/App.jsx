@@ -118,6 +118,7 @@ export default function App() {
         showToast={showToast}
         onUpdateRecord={appMode === 'signs' ? handleUpdateRecord : undefined}
         onSaved={appMode === 'survey' ? handleSurveySaved : appMode === 'drainage' ? handleDrainageSaved : handleSaved}
+        openLightbox={setLightboxSrc}
       />
 
       <TabNav activeTab={activeTab} onSwitch={setActiveTab} />

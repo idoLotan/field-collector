@@ -7,9 +7,9 @@ export default function RecordsTab({ active, records, onDelete, onDeleteAll, sho
   const handleShareWhatsApp = async () => {
     if (!records.length) { showToast('⚠️ אין רשומות לשיתוף.'); return; }
     showToast('⏳ מכין קבצים לשיתוף…');
-    if (mode === 'survey')   await shareSurveyWhatsApp(records);
-    else if (mode === 'drainage') await shareDrainageWhatsApp(records);
-    else await shareWhatsApp(records, showToast);
+    if (mode === 'survey')        await shareSurveyWhatsApp(records, showToast);
+    else if (mode === 'drainage') await shareDrainageWhatsApp(records, showToast);
+    else                          await shareWhatsApp(records, showToast);
   };
 
   const handleDeleteAll = () => {

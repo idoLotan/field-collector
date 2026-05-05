@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { formatId } from '../utils/formatters';
@@ -52,16 +52,41 @@ function MapClickHandler({ addMode, onMapClick }) {
 const SIGNS_STATUSES  = ['תקין', 'לא תקין', 'תמרור להצבה'];
 const SURVEY_STATUSES = ['תקין', 'טעון טיפול', 'הרוס/נטוש'];
 
-export default function MapTab({ active, records, showToast, onUpdateRecord, onSaved, mode }) {
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function MapTab({ active, records, showToast, onUpdateRecord, onSaved, mode, openLightbox }) {
   const mapRef = useRef(null);
   const [userPos, setUserPos]           = useState(null);
   const [userAccuracy, setUserAccuracy] = useState(0);
   const [editingRecord, setEditingRecord] = useState(null);
-  const [satellite, setSatellite]       = useState(false);
-  const [addMode, setAddMode]           = useState(false);
-  const [pendingPoint, setPendingPoint] = useState(null);
-  const [pendingNotes, setPendingNotes] = useState('');
+  const [satellite, setSatellite]       = useState(true);
+  const [addMode, setAddMode]             = useState(false);
+  const [pendingPoint, setPendingPoint]   = useState(null);
+  const [pendingNotes, setPendingNotes]   = useState('');
   const [pendingStatus, setPendingStatus] = useState('');
+  const [pendingPhotos, setPendingPhotos] = useState([]);
+  const photoInputRef = useRef(null);
 
   const { heading, active: compassActive, toggle: toggleCompass } = useCompass();
 
@@ -125,7 +150,16 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
     setPendingPoint(null);
     setPendingNotes('');
     setPendingStatus('');
+    setPendingPhotos([]);
   };
+
+  const handlePhotoChange = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const compressed = await compressImage(file);
+    setPendingPhotos(prev => [...prev, compressed]);
+    e.target.value = '';
+  }, []);
 
   const handleMapClick = (latlng) => {
     setPendingPoint(latlng);
@@ -144,11 +178,11 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
     if (mode === 'survey') {
       const id = getSurveyNextId();
       rec = { id, address, lat, lon, notes: pendingNotes, condition: pendingStatus,
-              photos: [], date, time, propertyType: '', residents: '', ageGroup: '',
+              photos: [...pendingPhotos], date, time, propertyType: '', residents: '', ageGroup: '',
               tenancy: '', ownerId: '', ownerName: '' };
     } else {
       const id = getNextId();
-      rec = { id, address, lat, lon, notes: pendingNotes, category: pendingStatus, photos: [], date, time };
+      rec = { id, address, lat, lon, notes: pendingNotes, category: pendingStatus, photos: [...pendingPhotos], date, time };
     }
 
     onSaved(rec);
@@ -176,14 +210,16 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
             key="sat"
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution="© Esri"
-            maxZoom={19}
+            maxNativeZoom={18}
+            maxZoom={21}
           />
         ) : (
           <TileLayer
             key="osm"
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            maxZoom={19}
+            maxNativeZoom={19}
+            maxZoom={21}
           />
         )}
         <MapController active={active} />
@@ -346,6 +382,39 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
             onChange={e => setPendingNotes(e.target.value)}
             rows={2}
           />
+
+          <div className="map-add-photos-row">
+            {pendingPhotos.map((src, i) => (
+              <div key={i} className="photo-thumb-wrap">
+                <img
+                  src={src}
+                  className="photo-thumb"
+                  alt=""
+                  onClick={() => openLightbox?.(src)}
+                />
+                <button
+                  className="photo-thumb-remove"
+                  onClick={() => setPendingPhotos(p => p.filter((_, j) => j !== i))}
+                >✕</button>
+              </div>
+            ))}
+            <button className="map-add-photo-extra" onClick={() => photoInputRef.current?.click()} title="הוסף תמונה נוספת">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                   strokeLinecap="round" width="18" height="18">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              {pendingPhotos.length === 0 ? 'צלם תמונה' : '+ תמונה'}
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handlePhotoChange}
+            />
+          </div>
 
           <div className="map-add-actions">
             <button className="map-add-btn-save" onClick={handleSavePoint}>✅ שמור נקודה</button>

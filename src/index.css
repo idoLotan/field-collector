@@ -479,6 +479,16 @@ textarea { min-height: 90px; resize: vertical; }
   resize: none; margin-bottom: 12px; direction: rtl;
 }
 .map-add-notes:focus { outline: none; border-color: #f59e0b; }
+.map-add-photos-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 2px;
+}
+.map-add-photo-extra {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 11px; border-radius: 10px;
+  border: 1.5px dashed var(--border); background: none;
+  color: var(--gray); font-size: .78rem; cursor: pointer;
+}
+.map-add-photo-extra:active { background: var(--gray-lt); }
 .map-add-actions { display: flex; gap: 8px; }
 .map-add-btn-save {
   flex: 1; padding: 10px; border: none; border-radius: 8px;

@@ -138,38 +138,41 @@ export async function exportAllPhotosZip(records) {
   return total;
 }
 
-export async function shareWhatsApp(records) {
+export async function shareWhatsApp(records, showToast) {
   const dateStr = new Date().toISOString().slice(0, 10);
-  const zipFilename = `field-collector-${dateStr}.zip`;
 
-  // Build Excel bytes
+  // Share Excel — WhatsApp supports .xlsx on Android (ZIP is not supported)
   const wbout = XLSX.write(buildWorkbook(records), { bookType: 'xlsx', type: 'array' });
+  const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const xlsxBlob = new Blob([wbout], { type: xlsxType });
+  const xlsxFilename = `field-records-${dateStr}.xlsx`;
+  const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
-  // Build single ZIP containing Excel + all photos
-  const zip = new JSZip();
-  zip.file(`field-records-${dateStr}.xlsx`, wbout);
-
-  const withPhotos = records.filter(r => r.photos?.length);
-  for (const r of withPhotos) {
-    const fid = formatId(r.id);
-    r.photos.forEach((dataUrl, i) => {
-      zip.file(`photos/${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
-    });
-  }
-
-  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-  const zipFile = new File([zipBlob], zipFilename, { type: 'application/zip' });
-
-  if (navigator.canShare?.({ files: [zipFile] })) {
+  if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
-      await navigator.share({ title: 'Field Collector', files: [zipFile] });
-      return;
+      await navigator.share({ title: 'Field Collector', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
+      await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
+  } else {
+    await saveFile(xlsxBlob, xlsxFilename, xlsxType);
   }
 
-  await saveFile(zipBlob, zipFilename, 'application/zip');
+  // Photos: save separately as ZIP to Downloads
+  const withPhotos = records.filter(r => r.photos?.length);
+  if (withPhotos.length) {
+    const zip = new JSZip();
+    for (const r of withPhotos) {
+      const fid = formatId(r.id);
+      r.photos.forEach((dataUrl, i) => {
+        zip.file(`${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
+      });
+    }
+    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
+    showToast?.('📸 תמונות נשמרו בהורדות');
+  }
 }
 
 // ── Survey Excel export ──
@@ -194,30 +197,38 @@ function buildSurveyWorkbook(records) {
   return wb;
 }
 
-export async function shareSurveyWhatsApp(records) {
+export async function shareSurveyWhatsApp(records, showToast) {
   const dateStr = new Date().toISOString().slice(0, 10);
-  const zipFilename = `survey-${dateStr}.zip`;
   const wbout = XLSX.write(buildSurveyWorkbook(records), { bookType: 'xlsx', type: 'array' });
-  const zip = new JSZip();
-  zip.file(`survey-records-${dateStr}.xlsx`, wbout);
-  const withPhotos = records.filter(r => r.photos?.length);
-  for (const r of withPhotos) {
-    const fid = formatId(r.id);
-    r.photos.forEach((dataUrl, i) => {
-      zip.file(`photos/${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
-    });
-  }
-  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-  const zipFile = new File([zipBlob], zipFilename, { type: 'application/zip' });
-  if (navigator.canShare?.({ files: [zipFile] })) {
+  const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const xlsxBlob = new Blob([wbout], { type: xlsxType });
+  const xlsxFilename = `survey-records-${dateStr}.xlsx`;
+  const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
+
+  if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
-      await navigator.share({ title: 'Survey Records', files: [zipFile] });
-      return;
+      await navigator.share({ title: 'Survey Records', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
+      await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
+  } else {
+    await saveFile(xlsxBlob, xlsxFilename, xlsxType);
   }
-  await saveFile(zipBlob, zipFilename, 'application/zip');
+
+  const withPhotos = records.filter(r => r.photos?.length);
+  if (withPhotos.length) {
+    const zip = new JSZip();
+    for (const r of withPhotos) {
+      const fid = formatId(r.id);
+      r.photos.forEach((dataUrl, i) => {
+        zip.file(`${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
+      });
+    }
+    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
+    showToast?.('📸 תמונות נשמרו בהורדות');
+  }
 }
 
 // ── Drainage Excel export ──
@@ -240,30 +251,38 @@ function buildDrainageWorkbook(records) {
   return wb;
 }
 
-export async function shareDrainageWhatsApp(records) {
+export async function shareDrainageWhatsApp(records, showToast) {
   const dateStr = new Date().toISOString().slice(0, 10);
-  const zipFilename = `drainage-${dateStr}.zip`;
   const wbout = XLSX.write(buildDrainageWorkbook(records), { bookType: 'xlsx', type: 'array' });
-  const zip = new JSZip();
-  zip.file(`drainage-records-${dateStr}.xlsx`, wbout);
-  const withPhotos = records.filter(r => r.photos?.length);
-  for (const r of withPhotos) {
-    const fid = formatId(r.id);
-    r.photos.forEach((dataUrl, i) => {
-      zip.file(`photos/${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
-    });
-  }
-  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-  const zipFile = new File([zipBlob], zipFilename, { type: 'application/zip' });
-  if (navigator.canShare?.({ files: [zipFile] })) {
+  const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const xlsxBlob = new Blob([wbout], { type: xlsxType });
+  const xlsxFilename = `drainage-records-${dateStr}.xlsx`;
+  const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
+
+  if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
-      await navigator.share({ title: 'Drainage Records', files: [zipFile] });
-      return;
+      await navigator.share({ title: 'Drainage Records', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
+      await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
+  } else {
+    await saveFile(xlsxBlob, xlsxFilename, xlsxType);
   }
-  await saveFile(zipBlob, zipFilename, 'application/zip');
+
+  const withPhotos = records.filter(r => r.photos?.length);
+  if (withPhotos.length) {
+    const zip = new JSZip();
+    for (const r of withPhotos) {
+      const fid = formatId(r.id);
+      r.photos.forEach((dataUrl, i) => {
+        zip.file(`${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
+      });
+    }
+    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
+    showToast?.('📸 תמונות נשמרו בהורדות');
+  }
 }
 
 export async function saveRecordPhotos(record) {
