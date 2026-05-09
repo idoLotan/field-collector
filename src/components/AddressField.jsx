@@ -1,7 +1,26 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { buildStreetMap, sortedStreets, escRegex } from '../utils/formatters';
 import { persistAddrPairs } from '../utils/storage';
+
+const TZFAT_ADDR_URL = 'https://archive.gis-net.co.il/Tzfat/GIS/address/כתובות_צפת.xlsx';
+
+function parseXlsxBuffer(arrayBuffer) {
+  const wb = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (!rows.length) return [];
+  let start = 0;
+  const hdrRe = /street|road|שם|רחוב|address|house|number|בית|מס|col/i;
+  if (hdrRe.test(String(rows[0][0] || '')) || hdrRe.test(String(rows[0][1] || ''))) start = 1;
+  const pairs = [];
+  for (let i = start; i < rows.length; i++) {
+    const street = String(rows[i][0] || '').trim();
+    const house  = String(rows[i][1] || '').trim();
+    if (street && house) pairs.push({ street, house });
+  }
+  return pairs;
+}
 
 function HighlightedText({ text, query }) {
   if (!query.trim()) return <>{text}</>;
@@ -25,12 +44,40 @@ export default function AddressField({
   showToast,
   compact = false,
 }) {
-  const [streetOpen, setStreetOpen] = useState(false);
+  const [streetOpen, setStreetOpen]   = useState(false);
   const [streetHlIdx, setStreetHlIdx] = useState(-1);
-  const [houseOpen, setHouseOpen] = useState(false);
+  const [houseOpen, setHouseOpen]     = useState(false);
+  const [srvLoading, setSrvLoading]   = useState(false);
   const streetWrapRef = useRef(null);
-  const houseWrapRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const houseWrapRef  = useRef(null);
+  const fileInputRef  = useRef(null);
+
+  const applyPairs = (pairs) => {
+    if (!pairs.length) { showToast('⚠️ לא נמצאו כתובות בקובץ.'); return; }
+    persistAddrPairs(pairs);
+    onAddrPairsChange(pairs);
+    const sc = new Set(pairs.map(p => p.street)).size;
+    showToast(`✅ נטענו ${pairs.length} כתובות (${sc} רחובות)`);
+  };
+
+  const loadFromServer = async () => {
+    setSrvLoading(true);
+    try {
+      const res = await fetch(TZFAT_ADDR_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      applyPairs(parseXlsxBuffer(buf));
+    } catch (err) {
+      showToast('❌ שגיאה בטעינה מהשרת: ' + err.message);
+    } finally {
+      setSrvLoading(false);
+    }
+  };
+
+  // Auto-load on first mount if no local data
+  useEffect(() => {
+    if (addrPairs.length === 0) loadFromServer();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const streetMap = buildStreetMap(addrPairs);
   const allStreets = sortedStreets(streetMap);
@@ -109,34 +156,8 @@ export default function AddressField({
     input.value = '';
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-        if (!rows.length) { showToast('⚠️ הקובץ נראה ריק.'); return; }
-
-        let startRow = 0;
-        const headerWords = /street|road|שם|רחוב|address|house|number|בית|מס|col/i;
-        if (headerWords.test(String(rows[0][0] || '')) || headerWords.test(String(rows[0][1] || ''))) {
-          startRow = 1;
-        }
-
-        const pairs = [];
-        for (let i = startRow; i < rows.length; i++) {
-          const street = String(rows[i][0] || '').trim();
-          const house  = String(rows[i][1] || '').trim();
-          if (street && house) pairs.push({ street, house });
-        }
-
-        if (!pairs.length) { showToast('⚠️ לא נמצאו זוגות רחוב+מספר. בדוק עמודות A ו-B.'); return; }
-
-        persistAddrPairs(pairs);
-        onAddrPairsChange(pairs);
-        const streetCount = new Set(pairs.map(p => p.street)).size;
-        showToast(`✅ נטענו ${pairs.length} שורות (${streetCount} רחובות)`);
-      } catch (err) {
-        showToast('❌ לא ניתן לקרוא את הקובץ: ' + err.message);
-      }
+      try { applyPairs(parseXlsxBuffer(e.target.result)); }
+      catch (err) { showToast('❌ לא ניתן לקרוא את הקובץ: ' + err.message); }
     };
     reader.readAsArrayBuffer(file);
   };
@@ -243,13 +264,14 @@ export default function AddressField({
         <span className={`addr-badge${addrPairs.length ? '' : ' empty'}`}>
           {addrBadge}
         </span>
-        <button className="btn-load" onClick={() => fileInputRef.current.click()}>
-          📂 טען קובץ
+        <button className="btn-load" onClick={loadFromServer} disabled={srvLoading}>
+          {srvLoading ? '⏳ טוען…' : '🔄 עדכן'}
+        </button>
+        <button className="btn-load" onClick={() => fileInputRef.current.click()} style={{ fontSize: '.75rem' }}>
+          📂
         </button>
         {addrPairs.length > 0 && (
-          <button className="btn-clear-list" onClick={clearAddressList}>
-            ✕ נקה נתונים
-          </button>
+          <button className="btn-clear-list" onClick={clearAddressList}>✕</button>
         )}
       </div>
 

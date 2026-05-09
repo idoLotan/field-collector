@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { formatId } from '../utils/formatters';
-import { getNextId, getSurveyNextId } from '../utils/storage';
+import { getNextId, getSurveyNextId, loadAddrPairs } from '../utils/storage';
 import { useCompass } from '../utils/useCompass';
 import CompassWidget from './CompassWidget';
 
@@ -83,6 +83,22 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
   const [satellite, setSatellite]       = useState(true);
   const [orthoMode, setOrthoMode]       = useState(false);
   const [orthoTms, setOrthoTms]         = useState(true); // gdal2tiles default = TMS
+  const [addrSearch, setAddrSearch]     = useState(false);
+  const [addrQuery, setAddrQuery]       = useState('');
+  const [addrHouse, setAddrHouse]       = useState('');
+  const [addrLoading, setAddrLoading]   = useState(false);
+  const addrInputRef = useRef(null);
+  const addrPairs = loadAddrPairs();
+  const streetMap = {};
+  addrPairs.forEach(({ street, house }) => {
+    if (!streetMap[street]) streetMap[street] = [];
+    streetMap[street].push(house);
+  });
+  const allStreets = Object.keys(streetMap).sort((a, b) => a.localeCompare(b, 'he'));
+  const filteredStreets = addrQuery
+    ? allStreets.filter(s => s.includes(addrQuery))
+    : allStreets;
+  const housesForStreet = addrQuery && streetMap[addrQuery] ? streetMap[addrQuery] : [];
   const [addMode, setAddMode]             = useState(false);
   const [pendingPoint, setPendingPoint]   = useState(null);
   const [pendingNotes, setPendingNotes]   = useState('');
@@ -145,6 +161,29 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
     onUpdateRecord(editingRecord.id, lat.toFixed(6), lon.toFixed(6));
     setEditingRecord(null);
     showToast('✅ קואורדינטות עודכנו');
+  };
+
+  const geocodeAddress = async (street, house) => {
+    if (!street) { showToast('⚠️ בחר רחוב'); return; }
+    setAddrLoading(true);
+    try {
+      const q = encodeURIComponent(`${street} ${house}, צפת, ישראל`);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&accept-language=he`,
+        { headers: { 'User-Agent': 'FieldCollectorApp/1.0' } }
+      );
+      const data = await res.json();
+      if (!data.length) { showToast('⚠️ הכתובת לא נמצאה'); return; }
+      const { lat, lon } = data[0];
+      mapRef.current?.setView([parseFloat(lat), parseFloat(lon)], 18);
+      setAddrSearch(false);
+      setAddrQuery('');
+      setAddrHouse('');
+    } catch {
+      showToast('❌ שגיאה בחיפוש כתובת');
+    } finally {
+      setAddrLoading(false);
+    }
   };
 
   const cancelAdd = () => {
@@ -379,7 +418,51 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
           onClick={() => setOrthoMode(o => !o)}
           title="אורתופוטו צפת"
         >🏙️</button>
+        <button
+          className={`map-fab map-fab-addr${addrSearch ? ' active' : ''}`}
+          onClick={() => { setAddrSearch(s => !s); setTimeout(() => addrInputRef.current?.focus(), 100); }}
+          title="חפש כתובת"
+        >🔍</button>
       </div>
+
+      {addrSearch && (
+        <div className="map-addr-panel">
+          <div className="map-addr-row">
+            <input
+              ref={addrInputRef}
+              className="map-addr-input"
+              placeholder="חפש רחוב…"
+              value={addrQuery}
+              onChange={e => { setAddrQuery(e.target.value); setAddrHouse(''); }}
+              autoComplete="off"
+            />
+            {addrQuery && streetMap[addrQuery] && (
+              <select
+                className="map-addr-house"
+                value={addrHouse}
+                onChange={e => setAddrHouse(e.target.value)}
+              >
+                <option value="">מס׳</option>
+                {housesForStreet.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            )}
+            <button
+              className="map-addr-go"
+              onClick={() => geocodeAddress(addrQuery, addrHouse)}
+              disabled={addrLoading}
+            >{addrLoading ? '⏳' : '←'}</button>
+          </div>
+          {addrQuery && !streetMap[addrQuery] && filteredStreets.length > 0 && (
+            <ul className="map-addr-suggestions">
+              {filteredStreets.slice(0, 8).map(s => (
+                <li key={s} onClick={() => { setAddrQuery(s); setAddrHouse(''); }}>
+                  {s}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {orthoMode && (
         <div className="map-ortho-bar">
