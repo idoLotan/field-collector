@@ -81,6 +81,8 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
   const [userAccuracy, setUserAccuracy] = useState(0);
   const [editingRecord, setEditingRecord] = useState(null);
   const [satellite, setSatellite]       = useState(true);
+  const [orthoMode, setOrthoMode]       = useState(false);
+  const [orthoTms, setOrthoTms]         = useState(true); // gdal2tiles default = TMS
   const [addMode, setAddMode]             = useState(false);
   const [pendingPoint, setPendingPoint]   = useState(null);
   const [pendingNotes, setPendingNotes]   = useState('');
@@ -222,6 +224,22 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
             maxZoom={21}
           />
         )}
+        {orthoMode && (
+          <TileLayer
+            key={`ortho-${orthoTms}`}
+            url="https://archive.gis-net.co.il/Tzfat/GIS/tiles_zfat/{z}/{x}/{y}.jpg"
+            tms={orthoTms}
+            minZoom={18}
+            minNativeZoom={18}
+            maxNativeZoom={20}
+            maxZoom={22}
+            attribution="© GIS-Net אורתופוטו צפת"
+            eventHandlers={{
+              tileerror: (e) => console.warn('[Ortho] tile error:', e.tile.src),
+              tileload:  (e) => console.log('[Ortho] tile ok:',    e.tile.src),
+            }}
+          />
+        )}
         <MapController active={active} />
         <MapClickHandler addMode={addMode} onMapClick={handleMapClick} />
 
@@ -356,7 +374,23 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
           onClick={() => setSatellite(s => !s)}
           title={satellite ? 'מפה רגילה' : 'תצלום לווין'}
         >🛰️</button>
+        <button
+          className={`map-fab map-fab-ortho${orthoMode ? ' active' : ''}`}
+          onClick={() => setOrthoMode(o => !o)}
+          title="אורתופוטו צפת"
+        >🏙️</button>
       </div>
+
+      {orthoMode && (
+        <div className="map-ortho-bar">
+          <span>אורתופוטו צפת · zoom 18–20</span>
+          <button
+            className="map-ortho-tms-btn"
+            onClick={() => setOrthoTms(t => !t)}
+            title="החלף TMS/XYZ"
+          >{orthoTms ? 'TMS' : 'XYZ'}</button>
+        </div>
+      )}
 
       {addMode && (
         <div className={`map-add-sheet${pendingPoint ? ' visible' : ''}`}>

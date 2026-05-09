@@ -444,6 +444,22 @@ textarea { min-height: 90px; resize: vertical; }
 .map-fab-add.active { background: #6b7280; }
 .map-fab-satellite  { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
 .map-fab-satellite.active { background: #1e293b; border-color: #1e293b; }
+.map-fab-ortho { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
+.map-fab-ortho.active { background: #16a34a; border-color: #16a34a; }
+
+.map-ortho-bar {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.72); color: #fff; border-radius: 20px;
+  padding: 5px 12px 5px 6px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: .75rem; z-index: 500; pointer-events: auto;
+}
+.map-ortho-tms-btn {
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.4);
+  color: #fff; border-radius: 10px; padding: 2px 8px;
+  font-size: .72rem; font-weight: 700; cursor: pointer;
+}
+.map-ortho-tms-btn:active { background: rgba(255,255,255,.32); }
 #mapContainer.map-add-cursor { cursor: crosshair !important; }
 .map-add-banner {
   position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
