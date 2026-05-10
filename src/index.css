@@ -1476,16 +1476,16 @@ textarea { min-height: 90px; resize: vertical; }
   /* ── save button ── */
   .step-save-btn { min-height: 58px; font-size: 1.05rem; }
 
-  /* ── records: 2-column grid ── */
-  #view-records {
+  /* ── records: 2-column grid (only when active) ── */
+  #view-records.active {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     align-content: start;
   }
-  #view-records .export-bar,
-  #view-records .record-count,
-  #view-records .empty-state { grid-column: 1 / -1; }
+  #view-records.active .export-bar,
+  #view-records.active .record-count,
+  #view-records.active .empty-state { grid-column: 1 / -1; }
 
   /* ── overlay – center instead of bottom-sheet ── */
   #overlay { align-items: center; }
