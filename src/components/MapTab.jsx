@@ -83,7 +83,7 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
   const [satellite, setSatellite]       = useState(true);
   const [orthoMode, setOrthoMode]       = useState(false);
   const [orthoTms, setOrthoTms]         = useState(true); // gdal2tiles default = TMS
-  const [orthoVer, setOrthoVer]         = useState('jpg'); // 'webp' | 'jpg'
+
   const [addrSearch, setAddrSearch]     = useState(false);
   const [addrQuery, setAddrQuery]       = useState('');
   const [addrHouse, setAddrHouse]       = useState('');
@@ -236,8 +236,8 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
     <div className={`view${active ? ' active' : ''}`} id="view-map">
       <MapContainer
         id="mapContainer"
-        center={[31.5, 34.9]}
-        zoom={8}
+        center={[32.965, 35.497]}
+        zoom={14}
         style={{ width: '100%', height: '100%' }}
         zoomControl={true}
         ref={mapRef}
@@ -266,12 +266,8 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
         )}
         {orthoMode && (
           <TileLayer
-            key={`ortho-${orthoTms}-${orthoVer}`}
-            url={
-              orthoVer === 'webp'
-                ? 'https://archive.gis-net.co.il/Tzfat/GIS/tiles_zfat_full_webp/{z}/{x}/{y}.webp'
-                : 'https://archive.gis-net.co.il/Tzfat/GIS/tiles_zfat/{z}/{x}/{y}.jpg'
-            }
+            key={`ortho-${orthoTms}`}
+            url="https://archive.gis-net.co.il/Tzfat/GIS/tiles_png/{z}/{x}/{y}.png"
             tms={orthoTms}
             minZoom={18}
             minNativeZoom={18}
@@ -472,11 +468,6 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
       {orthoMode && (
         <div className="map-ortho-bar">
           <span>אורתופוטו צפת · zoom 18–20</span>
-          <button
-            className="map-ortho-tms-btn"
-            onClick={() => setOrthoVer(v => v === 'webp' ? 'jpg' : 'webp')}
-            title="החלף גרסה"
-          >{orthoVer === 'webp' ? 'WebP' : 'JPG'}</button>
           <button
             className="map-ortho-tms-btn"
             onClick={() => setOrthoTms(t => !t)}
