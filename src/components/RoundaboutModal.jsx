@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { MapContainer, TileLayer } from 'react-leaflet';
 import { useCompass } from '../utils/useCompass';
 import CompassWidget from './CompassWidget';
+
+const ORTHO_URL = 'https://archive.gis-net.co.il/Tzfat/GIS/tiles_png/{z}/{x}/{y}.png';
 
 const DIRS = [
   { key: 'north', label: 'צפון', short: 'צ' },
@@ -84,7 +87,7 @@ function DirPanel({ dirKey, label, data, onChange, menuUp, menuLeft }) {
   );
 }
 
-export default function RoundaboutModal({ open, data, onChange, onClose, onSwitchToCards, onSwitchToRapid }) {
+export default function RoundaboutModal({ open, data, onChange, onClose, onSwitchToCards, onSwitchToRapid, lat, lon }) {
   const { heading, active: compassActive, toggle: toggleCompass } = useCompass();
 
   if (!open) return null;
@@ -141,7 +144,32 @@ export default function RoundaboutModal({ open, data, onChange, onClose, onSwitc
             menuUp={false} menuLeft={false} />
 
           <div className="rb-circle-wrap">
-            <img src={circleImg} className="rb-circle-img" alt="כיכר" />
+            {lat && lon ? (
+              <div className="rb-mini-map">
+                <MapContainer
+                  center={[parseFloat(lat), parseFloat(lon)]}
+                  zoom={19}
+                  zoomControl={false}
+                  attributionControl={false}
+                  scrollWheelZoom={false}
+                  doubleClickZoom={false}
+                  dragging={false}
+                  touchZoom={false}
+                  keyboard={false}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <TileLayer
+                    url={ORTHO_URL}
+                    tms={true}
+                    minNativeZoom={18}
+                    maxNativeZoom={20}
+                    maxZoom={20}
+                  />
+                </MapContainer>
+              </div>
+            ) : (
+              <img src={circleImg} className="rb-circle-img" alt="כיכר" />
+            )}
             <div className="rb-compass-wrap">
               {compassActive
                 ? <CompassWidget heading={heading} size={48} />

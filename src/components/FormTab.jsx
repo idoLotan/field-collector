@@ -57,6 +57,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
   const [capturedLon, setCapturedLon]       = useState(draft?.lon || null);
   const [stagingPhotos, setStagingPhotos]   = useState(draft?.photos || []);
   const [category, setCategory]             = useState(draft?.category || '');
+  const [defect, setDefect]                 = useState(draft?.defect || '');
   const [signNumber, setSignNumber]         = useState(draft?.signNumber || '');
   const [signCode, setSignCode]             = useState(draft?.signCode || '');
   const [signPickerOpen, setSignPickerOpen] = useState(false);
@@ -73,9 +74,9 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
     persistDraft({
       addressMode: addrMode, street: selectedStreet, house: selectedHouse,
       fAddressFree: freeText, notes, lat: capturedLat, lon: capturedLon,
-      photos: stagingPhotos, category, signNumber, signCode, roundabout,
+      photos: stagingPhotos, category, defect, signNumber, signCode, roundabout,
     });
-  }, [addrMode, selectedStreet, selectedHouse, freeText, notes, capturedLat, capturedLon, stagingPhotos, category, signNumber, signCode, roundabout]);
+  }, [addrMode, selectedStreet, selectedHouse, freeText, notes, capturedLat, capturedLon, stagingPhotos, category, defect, signNumber, signCode, roundabout]);
 
   useEffect(() => {
     viewRef.current?.scrollTo(0, 0);
@@ -108,6 +109,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
       lon: capturedLon || '',
       notes: notes.trim(),
       category,
+      defect,
       signNumber: signNumber.trim(),
       signCode,
       date: now.toLocaleDateString('en-GB'),
@@ -118,7 +120,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
     clearDraft();
     showToast('✅ הרשומה נשמרה!');
     setSelectedStreet(''); setSelectedHouse(''); setStreetInput('');
-    setFreeText(''); setNotes(''); setCategory(''); setSignNumber(''); setSignCode(''); setRoundabout(null);
+    setFreeText(''); setNotes(''); setCategory(''); setDefect(''); setSignNumber(''); setSignCode(''); setRoundabout(null);
     setCapturedLat(null); setCapturedLon(null); setStagingPhotos([]);
     setFormKey(k => k + 1);
   };
@@ -305,7 +307,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
       <div className="cat-cards">
         <button
           className={`cat-card${category === 'תקין' ? ' active-ok' : ''}`}
-          onClick={() => setCategory(category === 'תקין' ? '' : 'תקין')}
+          onClick={() => { setCategory(category === 'תקין' ? '' : 'תקין'); setDefect(''); }}
         >
           <span className={`cat-icon${category === 'תקין' ? ' ok' : ''}`}>
             {category === 'תקין' ? '✓' : '○'}
@@ -314,7 +316,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
         </button>
         <button
           className={`cat-card${category === 'לא תקין' ? ' active-bad' : ''}`}
-          onClick={() => setCategory(category === 'לא תקין' ? '' : 'לא תקין')}
+          onClick={() => { const next = category === 'לא תקין' ? '' : 'לא תקין'; setCategory(next); if (!next) setDefect(''); }}
         >
           <span className={`cat-icon${category === 'לא תקין' ? ' bad' : ''}`}>
             {category === 'לא תקין' ? '✕' : '○'}
@@ -323,7 +325,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
         </button>
         <button
           className={`cat-card${category === 'תמרור להצבה' ? ' active-new' : ''}`}
-          onClick={() => setCategory(category === 'תמרור להצבה' ? '' : 'תמרור להצבה')}
+          onClick={() => { setCategory(category === 'תמרור להצבה' ? '' : 'תמרור להצבה'); setDefect(''); }}
         >
           <span className={`cat-icon${category === 'תמרור להצבה' ? ' new-sign' : ''}`}>
             {category === 'תמרור להצבה' ? '+' : '○'}
@@ -331,6 +333,18 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
           <span className="cat-label">להצבה</span>
         </button>
       </div>
+
+      {category === 'לא תקין' && (
+        <div className="defect-chips">
+          {['תמרור עקום', 'עמוד עקום', 'תמרור דהוי'].map(d => (
+            <button
+              key={d}
+              className={`defect-chip${defect === d ? ' active' : ''}`}
+              onClick={() => setDefect(defect === d ? '' : d)}
+            >{d}</button>
+          ))}
+        </div>
+      )}
 
       <button
         className={`rb-trigger${hasRbData(roundabout) ? ' rb-trigger-on' : ''}`}
@@ -458,6 +472,8 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
         onClose={() => setStep('category')}
         onSwitchToCards={() => { setStep(null); setWizardInitialMode('cards'); setWizardOpen(true); }}
         onSwitchToRapid={() => { setStep(null); setWizardInitialMode('rapid'); setWizardOpen(true); }}
+        lat={capturedLat}
+        lon={capturedLon}
       />
     </>
   );

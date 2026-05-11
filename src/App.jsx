@@ -6,6 +6,7 @@ import SurveyFormTab from './components/SurveyFormTab';
 import DrainageFormTab from './components/DrainageFormTab';
 import RecordsTab from './components/RecordsTab';
 import MapTab from './components/MapTab';
+import QuickTab from './components/QuickTab';
 import Overlay from './components/Overlay';
 import Lightbox from './components/Lightbox';
 import Toast from './components/Toast';
@@ -118,6 +119,14 @@ export default function App() {
         showToast={showToast}
         onUpdateRecord={appMode === 'signs' ? handleUpdateRecord : undefined}
         onSaved={appMode === 'survey' ? handleSurveySaved : appMode === 'drainage' ? handleDrainageSaved : handleSaved}
+        openLightbox={setLightboxSrc}
+      />
+
+      <QuickTab
+        active={activeTab === 'quick'}
+        mode={appMode}
+        onSaved={appMode === 'survey' ? handleSurveySaved : appMode === 'drainage' ? handleDrainageSaved : handleSaved}
+        showToast={showToast}
         openLightbox={setLightboxSrc}
       />
 

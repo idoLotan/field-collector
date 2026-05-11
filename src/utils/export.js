@@ -44,7 +44,8 @@ function buildWorkbook(records) {
     } else {
       rows.push([
         formatId(r.id), r.address, r.lat, r.lon,
-        r.notes, r.category || '', r.signDirection || '', r.signNumber || '', r.signCode || '',
+        r.defect ? (r.defect + (r.notes ? ' — ' + r.notes : '')) : r.notes,
+        r.category || '', r.signDirection || '', r.signNumber || '', r.signCode || '',
         r.date, r.time, photoNote,
       ]);
     }

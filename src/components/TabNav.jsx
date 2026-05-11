@@ -31,6 +31,15 @@ function IconPlus() {
   );
 }
 
+function IconQuick() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  );
+}
+
 export default function TabNav({ activeTab, onSwitch }) {
   return (
     <nav className="bottom-nav">
@@ -56,6 +65,14 @@ export default function TabNav({ activeTab, onSwitch }) {
       >
         <IconPlus />
         <span>חדשה</span>
+      </button>
+
+      <button
+        className={`bottom-nav-btn${activeTab === 'quick' ? ' active' : ''}`}
+        onClick={() => onSwitch('quick')}
+      >
+        <IconQuick />
+        <span>מהיר</span>
       </button>
     </nav>
   );
