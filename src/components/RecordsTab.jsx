@@ -3,7 +3,7 @@ import SurveyRecordCard from './SurveyRecordCard';
 import DrainageRecordCard from './DrainageRecordCard';
 import { shareWhatsApp, shareSurveyWhatsApp, shareDrainageWhatsApp } from '../utils/export';
 
-export default function RecordsTab({ active, records, onDelete, onDeleteAll, showToast, openLightbox, showOverlay, mode = 'signs' }) {
+export default function RecordsTab({ active, records, onDelete, onDeleteAll, onEdit, showToast, openLightbox, showOverlay, mode = 'signs' }) {
   const handleShareWhatsApp = async () => {
     if (!records.length) { showToast('⚠️ אין רשומות לשיתוף.'); return; }
     showToast('⏳ מכין קבצים לשיתוף…');
@@ -56,17 +56,17 @@ export default function RecordsTab({ active, records, onDelete, onDeleteAll, sho
         [...records].reverse().map(r =>
           mode === 'survey' ? (
             <SurveyRecordCard
-              key={r.id} record={r} onDelete={handleDelete}
+              key={r.id} record={r} onDelete={handleDelete} onEdit={onEdit}
               openLightbox={openLightbox} showToast={showToast}
             />
           ) : mode === 'drainage' ? (
             <DrainageRecordCard
-              key={r.id} record={r} onDelete={handleDelete}
+              key={r.id} record={r} onDelete={handleDelete} onEdit={onEdit}
               openLightbox={openLightbox} showToast={showToast}
             />
           ) : (
             <RecordCard
-              key={r.id} record={r} onDelete={handleDelete}
+              key={r.id} record={r} onDelete={handleDelete} onEdit={onEdit}
               openLightbox={openLightbox} showToast={showToast}
             />
           )

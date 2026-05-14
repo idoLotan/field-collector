@@ -47,17 +47,27 @@ export default function App() {
     updateRecords(records.map(r => r.id === id ? { ...r, lat, lon } : r)),
     [records, updateRecords]);
 
+  const handleEditRecord = useCallback((id, updates) =>
+    updateRecords(records.map(r => r.id === id ? { ...r, ...updates } : r)),
+    [records, updateRecords]);
+
   // ── Survey records ──
   const updateSurveyRecords = useCallback((r) => { persistSurveyRecords(r); setSurveyRecords(r); }, []);
   const handleSurveySaved   = useCallback((rec) => updateSurveyRecords([...surveyRecords, rec]), [surveyRecords, updateSurveyRecords]);
   const handleSurveyDelete  = useCallback((id)  => updateSurveyRecords(surveyRecords.filter(r => r.id !== id)), [surveyRecords, updateSurveyRecords]);
   const handleSurveyDeleteAll = useCallback(()  => updateSurveyRecords([]), [updateSurveyRecords]);
+  const handleEditSurveyRecord = useCallback((id, updates) =>
+    updateSurveyRecords(surveyRecords.map(r => r.id === id ? { ...r, ...updates } : r)),
+    [surveyRecords, updateSurveyRecords]);
 
   // ── Drainage records ──
   const updateDrainageRecords = useCallback((r) => { persistDrainageRecords(r); setDrainageRecords(r); }, []);
   const handleDrainageSaved   = useCallback((rec) => updateDrainageRecords([...drainageRecords, rec]), [drainageRecords, updateDrainageRecords]);
   const handleDrainageDelete  = useCallback((id)  => updateDrainageRecords(drainageRecords.filter(r => r.id !== id)), [drainageRecords, updateDrainageRecords]);
   const handleDrainageDeleteAll = useCallback(()  => updateDrainageRecords([]), [updateDrainageRecords]);
+  const handleEditDrainageRecord = useCallback((id, updates) =>
+    updateDrainageRecords(drainageRecords.map(r => r.id === id ? { ...r, ...updates } : r)),
+    [drainageRecords, updateDrainageRecords]);
 
   const activeRecords = appMode === 'survey' ? surveyRecords : appMode === 'drainage' ? drainageRecords : records;
 
@@ -108,6 +118,7 @@ export default function App() {
         mode={appMode}
         onDelete={appMode === 'survey' ? handleSurveyDelete : appMode === 'drainage' ? handleDrainageDelete : handleDelete}
         onDeleteAll={appMode === 'survey' ? handleSurveyDeleteAll : appMode === 'drainage' ? handleDrainageDeleteAll : handleDeleteAll}
+        onEdit={appMode === 'survey' ? handleEditSurveyRecord : appMode === 'drainage' ? handleEditDrainageRecord : handleEditRecord}
         showToast={showToast}
         openLightbox={setLightboxSrc}
         showOverlay={setOverlay}

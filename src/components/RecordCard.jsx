@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { formatId } from '../utils/formatters';
 import { saveRecordPhotos } from '../utils/export';
+import EditRecordSheet from './EditRecordSheet';
 
-export default function RecordCard({ record, onDelete, openLightbox, showToast }) {
+export default function RecordCard({ record, onDelete, onEdit, openLightbox, showToast }) {
+  const [editing, setEditing] = useState(false);
   const fid = formatId(record.id);
 
   const handleSavePhotos = async () => {
@@ -29,6 +32,7 @@ export default function RecordCard({ record, onDelete, openLightbox, showToast }
       {record.signDirection && (
         <div className="rec-sign-info">🔵 {record.signDirection} · תמרור {record.signNumber}</div>
       )}
+      {record.defect && <div className="rec-sign-info" style={{color:'var(--orange)'}}>⚠ {record.defect}</div>}
       {record.lat && <div className="rec-coords">📍 {record.lat}, {record.lon}</div>}
       {record.notes && <div className="rec-notes">{record.notes}</div>}
 
@@ -44,8 +48,18 @@ export default function RecordCard({ record, onDelete, openLightbox, showToast }
         {record.photos?.length > 0 && (
           <button className="btn-save-photos" onClick={handleSavePhotos}>📥 שמור תמונות</button>
         )}
+        <button className="btn btn-ghost" style={{color:'var(--blue)',borderColor:'var(--blue)'}} onClick={() => setEditing(true)}>✏️ ערוך</button>
         <button className="btn btn-ghost" onClick={() => onDelete(record.id)}>🗑 מחק</button>
       </div>
+
+      {editing && (
+        <EditRecordSheet
+          record={record}
+          mode="signs"
+          onSave={(updates) => { onEdit(record.id, updates); showToast('✅ הרשומה עודכנה.'); }}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </div>
   );
 }

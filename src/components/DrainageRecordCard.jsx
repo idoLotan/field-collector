@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { formatId } from '../utils/formatters';
 import { saveRecordPhotos } from '../utils/export';
+import EditRecordSheet from './EditRecordSheet';
 
 const TYPE_IMG = {
   'קולטן': '/signs/koltan.png',
@@ -16,7 +18,8 @@ const CONDITION_CLASS = {
   'הרוס':        'drainage-badge-bad',
 };
 
-export default function DrainageRecordCard({ record, onDelete, openLightbox, showToast }) {
+export default function DrainageRecordCard({ record, onDelete, onEdit, openLightbox, showToast }) {
+  const [editing, setEditing] = useState(false);
   const fid = formatId(record.id);
 
   const handleSavePhotos = async () => {
@@ -67,8 +70,18 @@ export default function DrainageRecordCard({ record, onDelete, openLightbox, sho
         {record.photos?.length > 0 && (
           <button className="btn-save-photos" onClick={handleSavePhotos}>📥 שמור תמונות</button>
         )}
+        <button className="btn btn-ghost" style={{color:'var(--blue)',borderColor:'var(--blue)'}} onClick={() => setEditing(true)}>✏️ ערוך</button>
         <button className="btn btn-ghost" onClick={() => onDelete(record.id)}>🗑 מחק</button>
       </div>
+
+      {editing && (
+        <EditRecordSheet
+          record={record}
+          mode="drainage"
+          onSave={(updates) => { onEdit(record.id, updates); showToast('✅ הרשומה עודכנה.'); }}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </div>
   );
 }

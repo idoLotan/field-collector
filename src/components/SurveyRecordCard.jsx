@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { formatId } from '../utils/formatters';
 import { saveRecordPhotos } from '../utils/export';
+import EditRecordSheet from './EditRecordSheet';
 
 const CONDITION_CLASS = {
   'תקין': 'survey-badge-ok',
@@ -7,7 +9,8 @@ const CONDITION_CLASS = {
   'הרוס/נטוש': 'survey-badge-bad',
 };
 
-export default function SurveyRecordCard({ record, onDelete, openLightbox, showToast }) {
+export default function SurveyRecordCard({ record, onDelete, onEdit, openLightbox, showToast }) {
+  const [editing, setEditing] = useState(false);
   const fid = formatId(record.id);
 
   const handleSavePhotos = async () => {
@@ -51,8 +54,18 @@ export default function SurveyRecordCard({ record, onDelete, openLightbox, showT
         {record.photos?.length > 0 && (
           <button className="btn-save-photos" onClick={handleSavePhotos}>📥 שמור תמונות</button>
         )}
+        <button className="btn btn-ghost" style={{color:'var(--blue)',borderColor:'var(--blue)'}} onClick={() => setEditing(true)}>✏️ ערוך</button>
         <button className="btn btn-ghost" onClick={() => onDelete(record.id)}>🗑 מחק</button>
       </div>
+
+      {editing && (
+        <EditRecordSheet
+          record={record}
+          mode="survey"
+          onSave={(updates) => { onEdit(record.id, updates); showToast('✅ הרשומה עודכנה.'); }}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </div>
   );
 }
