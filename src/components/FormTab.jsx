@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
 import AddressField from './AddressField';
 import GpsField from './GpsField';
 import NotesField from './NotesField';
@@ -7,6 +9,13 @@ import { loadDraft, persistDraft, clearDraft, loadAddrPairs, getNextId } from '.
 import SignPicker, { SIGNS } from './SignPicker';
 import RoundaboutModal, { EMPTY_RB, hasRbData, formatRbForExcel } from './RoundaboutModal';
 import RoundaboutWizard from './RoundaboutWizard';
+
+const gpsMarkerIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:22px;height:22px;border-radius:50%;background:#dc2626;border:3px solid #fff;box-shadow:0 0 0 3px rgba(220,38,38,.35);"></div>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
 
 /* ── SVG icons ── */
 function IconLocation() {
@@ -97,10 +106,6 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
 
   const saveRecord = () => {
     const address = getAddressValue();
-    if (!address && !capturedLat) {
-      showToast('⚠️ הכנס כתובת או לכוד מיקום GPS תחילה.');
-      return;
-    }
     const now = new Date();
     const record = {
       id: getNextId(),
@@ -127,7 +132,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
 
   /* ── tile summaries ── */
   const addrValue = getAddressValue();
-  const addrDone  = !!(addrValue || capturedLat);
+  const addrDone  = !!capturedLat;
   const catDone   = !!category;
   const notesDone = !!notes.trim();
   const photosDone = stagingPhotos.length > 0;
@@ -170,8 +175,8 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
         <button className={`form-tile${addrDone ? ' done' : ''}`} onClick={() => setStep('address')}>
           <span className="form-tile-badge">{addrDone ? '✓' : ''}</span>
           <div className="form-tile-icon"><IconLocation /></div>
-          <span className="form-tile-label">כתובת ומיקום</span>
-          <span className="form-tile-sub">{addrDone ? (addrValue || '📍 GPS פעיל') : ''}</span>
+          <span className="form-tile-label">מיקום GPS</span>
+          <span className="form-tile-sub">{addrDone ? '📍 מיקום נלכד' : ''}</span>
         </button>
         <button className={`form-tile${catDone ? ' done' : ''}`} onClick={() => setStep('category')}>
           <span className="form-tile-badge">{catDone ? '✓' : ''}</span>
@@ -206,71 +211,15 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
   );
 
   /* ════════════════════════════════════════
-     ADDRESS + GPS
+     GPS LOCATION
   ════════════════════════════════════════ */
   const addressScreen = (
     <>
       <div className="step-header">
-        <h2>הזנת כתובת</h2>
-        <p>בחר דרך נוחה להזנת הכתובת</p>
+        <h2>לכידת מיקום GPS</h2>
+        <p>לחץ לכידת המיקום הנוכחי</p>
       </div>
 
-      {/* Mode toggle */}
-      <div className="addr-mode-lg">
-        <button
-          className={`addr-mode-btn${addrMode === 'list' ? ' active' : ''}`}
-          onClick={() => setAddrMode('list')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-            <circle cx="12" cy="9" r="2.5"/>
-          </svg>
-          רחוב + מספר
-        </button>
-        <button
-          className={`addr-mode-btn${addrMode === 'free' ? ' active' : ''}`}
-          onClick={() => setAddrMode('free')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-          טקסט חופשי
-        </button>
-      </div>
-
-      {/* Address input */}
-      {addrMode === 'free' ? (
-        <input
-          className="addr-main-input"
-          type="text"
-          value={freeText}
-          placeholder="הכנס כתובת מלאה…"
-          onChange={e => setFreeText(e.target.value)}
-        />
-      ) : (
-        <AddressField
-          key={`addr-${formKey}`}
-          mode={addrMode} onModeChange={setAddrMode}
-          selectedStreet={selectedStreet} selectedHouse={selectedHouse}
-          streetInput={streetInput} onStreetInput={handleStreetInput}
-          onStreetPick={handleStreetPick} onHousePick={setSelectedHouse}
-          freeText={freeText} onFreeTextChange={setFreeText}
-          addrPairs={addrPairs} onAddrPairsChange={setAddrPairs}
-          showToast={showToast}
-          compact
-        />
-      )}
-
-      {/* GPS status */}
-      {capturedLat && (
-        <div className="addr-gps-badge">
-          📍 {capturedLat}, {capturedLon}
-          <button onClick={() => { setCapturedLat(null); setCapturedLon(null); }}>✕</button>
-        </div>
-      )}
-
-      {/* Action cards */}
       <div className="addr-actions">
         <button className="addr-action-card" onClick={captureGPS} disabled={gpsLoading}>
           <span className="addr-action-icon">
@@ -283,9 +232,35 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
                 </svg>
             }
           </span>
-          <span className="addr-action-label">מיקום נוכחי</span>
+          <span className="addr-action-label">{capturedLat ? '🔄 עדכן מיקום' : '📍 לכוד מיקום'}</span>
         </button>
       </div>
+
+      {capturedLat && (
+        <>
+          <div className="addr-gps-badge" style={{ marginBottom: 12 }}>
+            📍 {capturedLat}, {capturedLon}
+            <button onClick={() => { setCapturedLat(null); setCapturedLon(null); }}>✕</button>
+          </div>
+          <div className="gps-preview-map">
+            <MapContainer
+              key={`${capturedLat},${capturedLon}`}
+              center={[parseFloat(capturedLat), parseFloat(capturedLon)]}
+              zoom={17}
+              style={{ width: '100%', height: '260px', borderRadius: '14px' }}
+              zoomControl={true}
+              attributionControl={false}
+              scrollWheelZoom={false}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker
+                position={[parseFloat(capturedLat), parseFloat(capturedLon)]}
+                icon={gpsMarkerIcon}
+              />
+            </MapContainer>
+          </div>
+        </>
+      )}
 
       <div className="step-footer">
         <Back />
@@ -336,7 +311,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
 
       {category === 'לא תקין' && (
         <div className="defect-chips">
-          {['תמרור עקום', 'עמוד עקום', 'תמרור דהוי'].map(d => (
+          {['תמרור עקום', 'עמוד עקום', 'תמרור דהוי', 'הזזת תמרור'].map(d => (
             <button
               key={d}
               className={`defect-chip${defect === d ? ' active' : ''}`}
@@ -346,6 +321,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
         </div>
       )}
 
+      {/* כיכר — מוסתר זמנית, לא נמחק
       <button
         className={`rb-trigger${hasRbData(roundabout) ? ' rb-trigger-on' : ''}`}
         onClick={() => { if (!roundabout) setRoundabout(EMPTY_RB); setStep('roundabout'); }}
@@ -361,6 +337,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
           ? <span className="rb-trigger-badge">✓ הוזן</span>
           : <span className="rb-trigger-arr">›</span>}
       </button>
+      */}
 
       <div className="field">
         <label>סוג תמרור <span>🪧</span></label>

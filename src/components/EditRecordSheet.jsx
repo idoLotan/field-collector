@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 const SIGNS_CATS    = ['תקין', 'לא תקין', 'תמרור להצבה'];
-const DEFECTS       = ['תמרור עקום', 'עמוד עקום', 'תמרור דהוי'];
+const DEFECTS       = ['תמרור עקום', 'עמוד עקום', 'תמרור דהוי', 'הזזת תמרור'];
 const SURVEY_CONDS  = ['תקין', 'טעון טיפול', 'הרוס/נטוש'];
 const SURVEY_PROPS  = ['דירה', 'בית פרטי', 'עסק', 'מוסד'];
 const SURVEY_RES    = ['1', '2-3', '4-5', '6+', 'לא ידוע'];

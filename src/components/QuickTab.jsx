@@ -119,7 +119,7 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
 
         {status === 'לא תקין' && mode === 'signs' && (
           <div className="defect-chips">
-            {['תמרור עקום', 'עמוד עקום', 'תמרור דהוי'].map(d => (
+            {['תמרור עקום', 'עמוד עקום', 'תמרור דהוי', 'הזזת תמרור'].map(d => (
               <button
                 key={d}
                 className={`defect-chip${defect === d ? ' active' : ''}`}

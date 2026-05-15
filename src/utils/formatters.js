@@ -1,5 +1,6 @@
-export function formatId(n) {
-  return 'FC-' + String(n).padStart(3, '0');
+export function formatId(id) {
+  if (typeof id === 'number') return 'FC-' + String(id).padStart(3, '0');
+  return id;
 }
 
 export function escRegex(s) {
