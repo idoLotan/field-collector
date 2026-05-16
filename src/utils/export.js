@@ -299,25 +299,33 @@ export async function saveRecordPhotos(record) {
     return new File([new Blob([arr], { type: 'image/jpeg' })], `${fid}_${i + 1}.jpg`, { type: 'image/jpeg' });
   });
 
-  if (navigator.canShare?.({ files })) {
+  // Try native Android share sheet (includes WhatsApp) — works on HTTPS
+  if (navigator.share) {
     try {
-      await navigator.share({
-        title: `Photos for ${fid}`,
-        text: `${files.length} photo${files.length !== 1 ? 's' : ''} from record ${fid}`,
-        files,
-      });
+      await navigator.share({ title: `תמונות ${fid}`, files });
       return;
     } catch (err) {
       if (err.name === 'AbortError') return;
+      // NotAllowedError / not supported — fall through to WhatsApp fallback
     }
   }
+
+  // Fallback: save files to device and open WhatsApp
   for (const file of files) {
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
     a.href = url; a.download = file.name;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    await new Promise(r => setTimeout(r, 200));
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
+
+  // Open WhatsApp directly after saving
+  const wa = document.createElement('a');
+  wa.href = 'whatsapp://';
+  wa.target = '_blank';
+  wa.rel = 'noopener';
+  document.body.appendChild(wa);
+  wa.click();
+  document.body.removeChild(wa);
 }
