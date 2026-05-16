@@ -68,7 +68,7 @@ export default function DrainageRecordCard({ record, onDelete, onEdit, openLight
 
       <div className="rec-actions">
         {record.photos?.length > 0 && (
-          <button className="btn-save-photos" onClick={handleSavePhotos}>📤 שתף תמונות</button>
+          <button className="btn-save-photos" onClick={handleSavePhotos}>📥 שמור תמונות</button>
         )}
         <button className="btn btn-ghost" style={{color:'var(--blue)',borderColor:'var(--blue)'}} onClick={() => setEditing(true)}>✏️ ערוך</button>
         <button className="btn btn-ghost" onClick={() => onDelete(record.id)}>🗑 מחק</button>

@@ -23,15 +23,22 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
 
   useEffect(() => {
     if (!active) return;
+    if (!navigator.geolocation) {
+      setGps({ lat: '', lon: '', state: 'err', msg: 'הדפדפן אינו תומך ב-GPS' });
+      return;
+    }
     setGps({ lat: '', lon: '', state: 'locating' });
     navigator.geolocation.getCurrentPosition(
       (pos) => setGps({
         lat: pos.coords.latitude.toFixed(6),
         lon: pos.coords.longitude.toFixed(6),
-        state: 'ok',
+        state: 'ok', msg: '',
       }),
-      () => setGps({ lat: '', lon: '', state: 'err' }),
-      { enableHighAccuracy: true, timeout: 12000 }
+      (err) => {
+        const msgs = { 1: 'הרשאת מיקום נדחתה', 2: 'GPS אינו זמין', 3: 'פג זמן — נסה שוב' };
+        setGps({ lat: '', lon: '', state: 'err', msg: msgs[err.code] || err.message });
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   }, [active]);
 
@@ -133,7 +140,7 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
           {gps.state === 'idle'     && '📍 לחץ לאיתור מיקום'}
           {gps.state === 'locating' && '📍 מאתר מיקום…'}
           {gps.state === 'ok'       && `📍 ${gps.lat}, ${gps.lon}`}
-          {gps.state === 'err'      && '📍 לא נמצא מיקום'}
+          {gps.state === 'err'      && `❌ ${gps.msg || 'לא נמצא מיקום'}`}
         </div>
 
         <button

@@ -131,8 +131,12 @@ export default function SurveyFormTab({ active, onSaved, showToast, openLightbox
         showToast(`✅ מיקום נלכד · דיוק ±${Math.round(pos.coords.accuracy)} מ'`);
         setGpsLoading(false);
       },
-      () => { showToast('❌ לא ניתן לאתר מיקום'); setGpsLoading(false); },
-      { enableHighAccuracy: true, timeout: 15000 }
+      (err) => {
+        const msg = { 1: 'הרשאת מיקום נדחתה — אפשר מיקום בהגדרות הדפדפן.', 2: 'לא ניתן לאתר מיקום — בדוק שה-GPS פעיל.', 3: 'פג זמן — צא לאוויר הפתוח ונסה שוב.' };
+        showToast('❌ ' + (msg[err.code] || err.message));
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
 
