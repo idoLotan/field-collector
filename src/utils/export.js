@@ -11,7 +11,7 @@ const RB_DIRS = [
 const RB_SIGNS = ['301', '303', '306', '214', '213'];
 
 function buildWorkbook(records) {
-  const rows = [['ID', 'Address', 'Latitude', 'Longitude', 'Notes', 'Category', 'כיוון', 'תמרור', 'סטטוס', 'Date', 'Time', 'Photos']];
+  const rows = [['ID', 'Address', 'Latitude', 'Longitude', 'Notes', 'Category', 'כיוון', 'תיאור', 'סוג תמרור', 'סטטוס', 'Date', 'Time', 'Photos']];
 
   records.forEach(r => {
     const photoNote = r.photos?.length
@@ -36,6 +36,7 @@ function buildWorkbook(records) {
           'כיכר',   // Category
           dir,      // כיוון
           sign,     // תמרור
+          '',       // סוג תמרור
           status,   // סטטוס
           r.date, r.time,
           i === 0 ? photoNote : '',
@@ -45,14 +46,14 @@ function buildWorkbook(records) {
       rows.push([
         formatId(r.id), r.address, r.lat, r.lon,
         r.defect ? (r.defect + (r.notes ? ' — ' + r.notes : '')) : r.notes,
-        r.category || '', r.signDirection || '', r.signNumber || '', r.signCode || '',
+        r.category || '', r.signDirection || '', r.signNumber || '', r.signDesc || '', r.signCode || '',
         r.date, r.time, photoNote,
       ]);
     }
   });
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch:10 },{ wch:35 },{ wch:14 },{ wch:14 },{ wch:50 },{ wch:12 },{ wch:10 },{ wch:10 },{ wch:14 },{ wch:12 },{ wch:10 },{ wch:32 }];
+  ws['!cols'] = [{ wch:10 },{ wch:35 },{ wch:14 },{ wch:14 },{ wch:50 },{ wch:12 },{ wch:10 },{ wch:10 },{ wch:22 },{ wch:14 },{ wch:12 },{ wch:10 },{ wch:32 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Field Records');
   return wb;
@@ -286,7 +287,7 @@ export async function shareDrainageWhatsApp(records, showToast) {
   }
 }
 
-export async function saveRecordPhotos(record) {
+export async function shareRecordPhotos(record) {
   const fid = formatId(record.id);
   const photos = record.photos || [];
   if (!photos.length) return;
@@ -298,18 +299,30 @@ export async function saveRecordPhotos(record) {
     return new File([new Blob([arr], { type: 'image/jpeg' })], `${fid}_${i + 1}.jpg`, { type: 'image/jpeg' });
   });
 
-  if (navigator.canShare?.({ files })) {
+  if (navigator.share) {
+    // Try sharing with files (requires HTTPS — shows Android share sheet with WhatsApp)
+    if (navigator.canShare?.({ files })) {
+      try {
+        await navigator.share({ title: `תמונות ${fid}`, files });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    // Fallback: share text only (works over HTTP too — opens WhatsApp with text)
+    const gps = record.lat ? ` | 📍 ${record.lat}, ${record.lon}` : '';
     try {
       await navigator.share({
-        title: `Photos for ${fid}`,
-        text: `${files.length} photo${files.length !== 1 ? 's' : ''} from record ${fid}`,
-        files,
+        title: `תמונות ${fid}`,
+        text: `📸 ${files.length} תמונות מרשומה ${fid}${gps}`,
       });
       return;
     } catch (err) {
       if (err.name === 'AbortError') return;
     }
   }
+
+  // Last resort: download files to device
   for (const file of files) {
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
@@ -320,3 +333,5 @@ export async function saveRecordPhotos(record) {
     await new Promise(r => setTimeout(r, 200));
   }
 }
+
+export const saveRecordPhotos = shareRecordPhotos;

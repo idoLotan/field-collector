@@ -69,6 +69,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
   const [defect, setDefect]                 = useState(draft?.defect || '');
   const [signNumber, setSignNumber]         = useState(draft?.signNumber || '');
   const [signCode, setSignCode]             = useState(draft?.signCode || '');
+  const [signDesc, setSignDesc]             = useState(draft?.signDesc || '');
   const [signPickerOpen, setSignPickerOpen] = useState(false);
   const [roundabout, setRoundabout]         = useState(draft?.roundabout || null);
   const [wizardOpen, setWizardOpen]           = useState(false);
@@ -83,9 +84,9 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
     persistDraft({
       addressMode: addrMode, street: selectedStreet, house: selectedHouse,
       fAddressFree: freeText, notes, lat: capturedLat, lon: capturedLon,
-      photos: stagingPhotos, category, defect, signNumber, signCode, roundabout,
+      photos: stagingPhotos, category, defect, signNumber, signCode, signDesc, roundabout,
     });
-  }, [addrMode, selectedStreet, selectedHouse, freeText, notes, capturedLat, capturedLon, stagingPhotos, category, defect, signNumber, signCode, roundabout]);
+  }, [addrMode, selectedStreet, selectedHouse, freeText, notes, capturedLat, capturedLon, stagingPhotos, category, defect, signNumber, signCode, signDesc, roundabout]);
 
   useEffect(() => {
     viewRef.current?.scrollTo(0, 0);
@@ -117,6 +118,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
       defect,
       signNumber: signNumber.trim(),
       signCode,
+      signDesc,
       date: now.toLocaleDateString('en-GB'),
       time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       photos: [...stagingPhotos],
@@ -125,7 +127,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
     clearDraft();
     showToast('✅ הרשומה נשמרה!');
     setSelectedStreet(''); setSelectedHouse(''); setStreetInput('');
-    setFreeText(''); setNotes(''); setCategory(''); setDefect(''); setSignNumber(''); setSignCode(''); setRoundabout(null);
+    setFreeText(''); setNotes(''); setCategory(''); setDefect(''); setSignNumber(''); setSignCode(''); setSignDesc(''); setRoundabout(null);
     setCapturedLat(null); setCapturedLon(null); setStagingPhotos([]);
     setFormKey(k => k + 1);
   };
@@ -139,13 +141,18 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
 
   /* ── GPS capture (inline) ── */
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [previewLayer, setPreviewLayer] = useState('map');
+  const [mapCenterKey, setMapCenterKey] = useState(null);
   const captureGPS = () => {
     if (!navigator.geolocation) { showToast('❌ הדפדפן אינו תומך ב-GPS'); return; }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCapturedLat(pos.coords.latitude.toFixed(6));
-        setCapturedLon(pos.coords.longitude.toFixed(6));
+        const lat = pos.coords.latitude.toFixed(6);
+        const lon = pos.coords.longitude.toFixed(6);
+        setCapturedLat(lat);
+        setCapturedLon(lon);
+        setMapCenterKey(`${lat},${lon},${previewLayer}`);
         showToast(`✅ מיקום נלכד · דיוק ±${Math.round(pos.coords.accuracy)} מ'`);
         setGpsLoading(false);
       },
@@ -242,23 +249,62 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
             📍 {capturedLat}, {capturedLon}
             <button onClick={() => { setCapturedLat(null); setCapturedLon(null); }}>✕</button>
           </div>
+
+          <div className="map-layer-picker">
+            {[
+              { id: 'map',       label: '🗺 מפה' },
+              { id: 'satellite', label: '🛰 לווין' },
+              { id: 'ortho',     label: '📷 אורטופוטו' },
+            ].map(({ id, label }) => (
+              <button
+                key={id}
+                className={`map-layer-btn${previewLayer === id ? ' active' : ''}`}
+                onClick={() => {
+                  setPreviewLayer(id);
+                  setMapCenterKey(`${capturedLat},${capturedLon},${id}`);
+                }}
+              >{label}</button>
+            ))}
+          </div>
+
           <div className="gps-preview-map">
             <MapContainer
-              key={`${capturedLat},${capturedLon}`}
+              key={mapCenterKey}
               center={[parseFloat(capturedLat), parseFloat(capturedLon)]}
-              zoom={17}
-              style={{ width: '100%', height: '260px', borderRadius: '14px' }}
+              zoom={previewLayer === 'ortho' ? 19 : 17}
+              style={{ width: '100%', height: '260px' }}
               zoomControl={true}
               attributionControl={false}
               scrollWheelZoom={false}
             >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {previewLayer === 'map' && (
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              )}
+              {previewLayer === 'satellite' && (
+                <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
+              )}
+              {previewLayer === 'ortho' && (
+                <TileLayer
+                  url="https://archive.gis-net.co.il/Tzfat/GIS/tiles_png/{z}/{x}/{y}.png"
+                  tms={true}
+                  minNativeZoom={18} maxNativeZoom={20} maxZoom={22}
+                />
+              )}
               <Marker
                 position={[parseFloat(capturedLat), parseFloat(capturedLon)]}
                 icon={gpsMarkerIcon}
+                draggable={true}
+                eventHandlers={{
+                  dragend: (e) => {
+                    const { lat, lng } = e.target.getLatLng();
+                    setCapturedLat(lat.toFixed(6));
+                    setCapturedLon(lng.toFixed(6));
+                  },
+                }}
               />
             </MapContainer>
           </div>
+          <p className="gps-drag-hint">ניתן לגרור את הסמן לכיוונון מדויק</p>
         </>
       )}
 
@@ -276,7 +322,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
     <>
       <div className="step-header">
         <h2>סיווג</h2>
-        <p>בחר סטטוס והזן מספר תמרור</p>
+        <p>בחר סטטוס ותיאור התמרור</p>
       </div>
 
       <div className="cat-cards">
@@ -346,9 +392,12 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
             <div className="sign-selected-icon">
               {(() => { const s = SIGNS.find(x => x.code === signCode); return s ? <img src={s.img} alt={signCode} /> : null; })()}
             </div>
-            <span className="sign-selected-label">{signCode}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span className="sign-selected-label">{signCode}</span>
+              {signDesc && <div style={{ fontSize: '.75rem', color: 'var(--gray)', marginTop: 2 }}>{signDesc}</div>}
+            </div>
             <button className="sign-change-btn" onClick={() => setSignPickerOpen(true)}>שנה</button>
-            <button className="sign-clear-btn" onClick={() => { setSignCode(''); setSignNumber(''); }}>✕</button>
+            <button className="sign-clear-btn" onClick={() => { setSignCode(''); setSignNumber(''); setSignDesc(''); }}>✕</button>
           </div>
         ) : (
           <button className="sign-pick-btn" onClick={() => setSignPickerOpen(true)}>
@@ -358,10 +407,10 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
       </div>
 
       <div className="field">
-        <label>מס׳ תמרור <span>🔢</span></label>
+        <label>תיאור מילולי <span>📝</span></label>
         <input
           type="text"
-          placeholder="הזן מספר תמרור…"
+          placeholder="הזן תיאור…"
           value={signNumber}
           onChange={e => setSignNumber(e.target.value)}
         />
@@ -468,7 +517,7 @@ export default function FormTab({ active, onSaved, onSavedBatch, showToast, open
       {step === 'photos'      && photosScreen}
       <SignPicker
         open={signPickerOpen}
-        onSelect={(code) => { setSignCode(code); setSignNumber(code); }}
+        onSelect={(code, desc) => { setSignCode(code); setSignNumber(code); setSignDesc(desc || ''); }}
         onClose={() => setSignPickerOpen(false)}
       />
       <RoundaboutWizard
