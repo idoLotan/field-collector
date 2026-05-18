@@ -80,7 +80,7 @@ async function saveFile(blob, filename, mimeType) {
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 export async function exportExcel(records) {
@@ -140,10 +140,42 @@ export async function exportAllPhotosZip(records) {
   return total;
 }
 
+function buildPhotoFiles(records) {
+  const files = [];
+  for (const r of records) {
+    if (!r.photos?.length) continue;
+    const fid = formatId(r.id);
+    r.photos.forEach((dataUrl, i) => {
+      const byteStr = atob(dataUrl.split(',')[1]);
+      const arr = new Uint8Array(byteStr.length);
+      for (let j = 0; j < byteStr.length; j++) arr[j] = byteStr.charCodeAt(j);
+      files.push(new File([new Blob([arr], { type: 'image/jpeg' })], `${fid}_${i + 1}.jpg`, { type: 'image/jpeg' }));
+    });
+  }
+  return files;
+}
+
+async function sharePhotosOrFallback(photoFiles, dateStr, showToast) {
+  if (!photoFiles.length) return;
+  if (navigator.canShare?.({ files: photoFiles })) {
+    try {
+      await navigator.share({ title: 'תמונות שטח', files: photoFiles });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+  // Last resort: ZIP download
+  const zip = new JSZip();
+  photoFiles.forEach(f => zip.file(f.name, f));
+  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
+  showToast?.('📸 תמונות נשמרו בהורדות');
+}
+
 export async function shareWhatsApp(records, showToast) {
   const dateStr = new Date().toISOString().slice(0, 10);
 
-  // Share Excel — WhatsApp supports .xlsx on Android (ZIP is not supported)
   const wbout = XLSX.write(buildWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const xlsxBlob = new Blob([wbout], { type: xlsxType });
@@ -161,20 +193,7 @@ export async function shareWhatsApp(records, showToast) {
     await saveFile(xlsxBlob, xlsxFilename, xlsxType);
   }
 
-  // Photos: save separately as ZIP to Downloads
-  const withPhotos = records.filter(r => r.photos?.length);
-  if (withPhotos.length) {
-    const zip = new JSZip();
-    for (const r of withPhotos) {
-      const fid = formatId(r.id);
-      r.photos.forEach((dataUrl, i) => {
-        zip.file(`${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
-      });
-    }
-    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
-    showToast?.('📸 תמונות נשמרו בהורדות');
-  }
+  await sharePhotosOrFallback(buildPhotoFiles(records), dateStr, showToast);
 }
 
 // ── Survey Excel export ──
@@ -218,19 +237,7 @@ export async function shareSurveyWhatsApp(records, showToast) {
     await saveFile(xlsxBlob, xlsxFilename, xlsxType);
   }
 
-  const withPhotos = records.filter(r => r.photos?.length);
-  if (withPhotos.length) {
-    const zip = new JSZip();
-    for (const r of withPhotos) {
-      const fid = formatId(r.id);
-      r.photos.forEach((dataUrl, i) => {
-        zip.file(`${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
-      });
-    }
-    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
-    showToast?.('📸 תמונות נשמרו בהורדות');
-  }
+  await sharePhotosOrFallback(buildPhotoFiles(records), dateStr, showToast);
 }
 
 // ── Drainage Excel export ──
@@ -272,19 +279,7 @@ export async function shareDrainageWhatsApp(records, showToast) {
     await saveFile(xlsxBlob, xlsxFilename, xlsxType);
   }
 
-  const withPhotos = records.filter(r => r.photos?.length);
-  if (withPhotos.length) {
-    const zip = new JSZip();
-    for (const r of withPhotos) {
-      const fid = formatId(r.id);
-      r.photos.forEach((dataUrl, i) => {
-        zip.file(`${fid}_${i + 1}.jpg`, dataUrl.split(',')[1], { base64: true });
-      });
-    }
-    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
-    showToast?.('📸 תמונות נשמרו בהורדות');
-  }
+  await sharePhotosOrFallback(buildPhotoFiles(records), dateStr, showToast);
 }
 
 export async function saveRecordPhotos(record) {
@@ -311,13 +306,15 @@ export async function saveRecordPhotos(record) {
   }
 
   // Fallback: save files to device and open WhatsApp
-  for (const file of files) {
+  for (let idx = 0; idx < files.length; idx++) {
+    const file = files[idx];
+    await new Promise(resolve => setTimeout(resolve, idx * 300));
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
     a.href = url; a.download = file.name;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
   // Open WhatsApp directly after saving
