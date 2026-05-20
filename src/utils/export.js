@@ -83,6 +83,72 @@ async function saveFile(blob, filename, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
+// Upload helper: try PUT to base/file, then POST to base (form field 'file').
+async function uploadFileToHost(file, baseUrl) {
+  const base = String(baseUrl).replace(/\/$/, '');
+
+  // If server provides S3 signing endpoint, use S3 flow
+  const s3SignUrl = window.S3_SIGN_URL;
+  if (s3SignUrl) {
+    try {
+      return await uploadFileToS3(s3SignUrl, file);
+    } catch (e) {
+      console.warn('S3 upload failed', e);
+    }
+  }
+
+  const putUrl = `${base}/${encodeURIComponent(file.name)}`;
+  try {
+    const putRes = await fetch(putUrl, { method: 'PUT', body: file });
+    if (putRes.ok) return putUrl;
+  } catch (e) {
+    console.warn('PUT upload failed', e);
+  }
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    const postRes = await fetch(base, { method: 'POST', body: fd });
+    if (!postRes.ok) throw new Error(postRes.statusText);
+    const loc = postRes.headers.get('Location');
+    const bodyText = await postRes.text();
+    if (loc) return loc;
+    if (bodyText && bodyText.trim().startsWith('http')) return bodyText.trim();
+    return `${base}/${encodeURIComponent(file.name)}`;
+  } catch (e) {
+    console.warn('POST upload failed', e);
+    throw e;
+  }
+}
+
+// Upload via S3 presigned URL: server should return JSON { url, publicUrl? }
+async function uploadFileToS3(signUrl, file) {
+  const res = await fetch(signUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: file.name, contentType: file.type }),
+  });
+  if (!res.ok) throw new Error('Failed to get presigned url');
+  const json = await res.json();
+  const { url, publicUrl } = json;
+  if (!url) throw new Error('No presigned url returned');
+  const putRes = await fetch(url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+  if (!putRes.ok) throw new Error('S3 upload failed');
+  return publicUrl || url.split('?')[0];
+}
+
+function openWhatsAppWithText(text) {
+  const encoded = encodeURIComponent(text);
+  const native = `whatsapp://send?text=${encoded}`;
+  const web = `https://api.whatsapp.com/send?text=${encoded}`;
+  // Try native first
+  const win = window.open(native, '_blank') || window.open(web, '_blank');
+  if (!win) {
+    // fallback: change location
+    window.location.href = web;
+  }
+}
+
 export async function exportExcel(records) {
   const filename = `field-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
   const wbout = XLSX.write(buildWorkbook(records), { bookType: 'xlsx', type: 'array' });
@@ -165,6 +231,26 @@ async function sharePhotosOrFallback(photoFiles, dateStr, showToast) {
       if (err.name === 'AbortError') return;
     }
   }
+  // Try upload to configured host (window.UPLOAD_BASE_URL) before falling back to ZIP download
+  const uploadBase = window.UPLOAD_BASE_URL;
+  if (uploadBase) {
+    const urls = [];
+    for (const f of photoFiles) {
+      try {
+        const url = await uploadFileToHost(f, uploadBase);
+        urls.push(url);
+      } catch (e) {
+        console.warn('upload failed for', f.name, e);
+      }
+    }
+    if (urls.length) {
+      const text = `תמונות: ${urls.join('\n')}`;
+      openWhatsAppWithText(text);
+      showToast?.('📸 תמונות הועלו ושיתוף וואטסאפ נפתח');
+      return;
+    }
+  }
+
   // Last resort: ZIP download
   const zip = new JSZip();
   photoFiles.forEach(f => zip.file(f.name, f));
@@ -182,11 +268,29 @@ export async function shareWhatsApp(records, showToast) {
   const xlsxFilename = `field-records-${dateStr}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
+  const uploadBase = window.UPLOAD_BASE_URL;
   if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
       await navigator.share({ title: 'Field Collector', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
+      // try upload if configured, else save
+      if (uploadBase) {
+        try {
+          const url = await uploadFileToHost(xlsxFile, uploadBase);
+          openWhatsAppWithText(`קובץ: ${url}`);
+        } catch (e) {
+          await saveFile(xlsxBlob, xlsxFilename, xlsxType);
+        }
+      } else {
+        await saveFile(xlsxBlob, xlsxFilename, xlsxType);
+      }
+    }
+  } else if (uploadBase) {
+    try {
+      const url = await uploadFileToHost(xlsxFile, uploadBase);
+      openWhatsAppWithText(`קובץ: ${url}`);
+    } catch (e) {
       await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
   } else {
@@ -226,11 +330,28 @@ export async function shareSurveyWhatsApp(records, showToast) {
   const xlsxFilename = `survey-records-${dateStr}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
+  const uploadBase = window.UPLOAD_BASE_URL;
   if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
       await navigator.share({ title: 'Survey Records', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
+      if (uploadBase) {
+        try {
+          const url = await uploadFileToHost(xlsxFile, uploadBase);
+          openWhatsAppWithText(`קובץ: ${url}`);
+        } catch (e) {
+          await saveFile(xlsxBlob, xlsxFilename, xlsxType);
+        }
+      } else {
+        await saveFile(xlsxBlob, xlsxFilename, xlsxType);
+      }
+    }
+  } else if (uploadBase) {
+    try {
+      const url = await uploadFileToHost(xlsxFile, uploadBase);
+      openWhatsAppWithText(`קובץ: ${url}`);
+    } catch (e) {
       await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
   } else {
@@ -268,11 +389,28 @@ export async function shareDrainageWhatsApp(records, showToast) {
   const xlsxFilename = `drainage-records-${dateStr}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
+  const uploadBase = window.UPLOAD_BASE_URL;
   if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
       await navigator.share({ title: 'Drainage Records', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
+      if (uploadBase) {
+        try {
+          const url = await uploadFileToHost(xlsxFile, uploadBase);
+          openWhatsAppWithText(`קובץ: ${url}`);
+        } catch (e) {
+          await saveFile(xlsxBlob, xlsxFilename, xlsxType);
+        }
+      } else {
+        await saveFile(xlsxBlob, xlsxFilename, xlsxType);
+      }
+    }
+  } else if (uploadBase) {
+    try {
+      const url = await uploadFileToHost(xlsxFile, uploadBase);
+      openWhatsAppWithText(`קובץ: ${url}`);
+    } catch (e) {
       await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
   } else {
@@ -306,6 +444,23 @@ export async function saveRecordPhotos(record) {
   }
 
   // Fallback: save files to device and open WhatsApp
+  const uploadBase = window.UPLOAD_BASE_URL;
+  if (uploadBase) {
+    const urls = [];
+    for (const f of files) {
+      try {
+        const url = await uploadFileToHost(f, uploadBase);
+        urls.push(url);
+      } catch (e) {
+        console.warn('upload failed for', f.name, e);
+      }
+    }
+    if (urls.length) {
+      openWhatsAppWithText(`תמונות ${fid}: ${urls.join('\n')}`);
+      return;
+    }
+  }
+
   for (let idx = 0; idx < files.length; idx++) {
     const file = files[idx];
     await new Promise(resolve => setTimeout(resolve, idx * 300));
