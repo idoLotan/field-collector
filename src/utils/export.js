@@ -11,13 +11,9 @@ const RB_DIRS = [
 const RB_SIGNS = ['301', '303', '306', '214', '213'];
 
 function buildWorkbook(records) {
-  const rows = [['ID', 'Address', 'Latitude', 'Longitude', 'Notes', 'Category', 'כיוון', 'תיאור', 'סוג תמרור', 'סטטוס', 'Date', 'Time', 'Photos']];
+  const rows = [['ID', 'Latitude', 'Longitude', 'Notes', 'Category', 'תיאור', 'key', 'סטטוס']];
 
   records.forEach(r => {
-    const photoNote = r.photos?.length
-      ? `${r.photos.length} photo${r.photos.length !== 1 ? 's' : ''} — files named ${formatId(r.id)}_1.jpg …`
-      : '';
-
     const rbEntries = [];
     if (r.roundabout) {
       RB_DIRS.forEach(dir => {
@@ -29,31 +25,30 @@ function buildWorkbook(records) {
     }
 
     if (rbEntries.length) {
-      rbEntries.forEach(({ dir, sign, status }, i) => {
+      rbEntries.forEach(({ sign, status }) => {
         rows.push([
-          formatId(r.id), r.address, r.lat, r.lon,
+          formatId(r.id), r.lat, r.lon,
           'כיכר',   // Notes
           'כיכר',   // Category
-          dir,      // כיוון
-          sign,     // תמרור
-          '',       // סוג תמרור
+          sign,     // תיאור
+          sign,     // key
           status,   // סטטוס
-          r.date, r.time,
-          i === 0 ? photoNote : '',
         ]);
       });
     } else {
       rows.push([
-        formatId(r.id), r.address, r.lat, r.lon,
+        formatId(r.id), r.lat, r.lon,
         r.defect ? (r.defect + (r.notes ? ' — ' + r.notes : '')) : r.notes,
-        r.category || '', r.signDirection || '', r.signNumber || '', r.signDesc || '', r.signCode || '',
-        r.date, r.time, photoNote,
+        r.category || '',
+        r.signNumber || '',
+        r.signCode || '',
+        r.signDesc || '',
       ]);
     }
   });
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch:10 },{ wch:35 },{ wch:14 },{ wch:14 },{ wch:50 },{ wch:12 },{ wch:10 },{ wch:10 },{ wch:22 },{ wch:14 },{ wch:12 },{ wch:10 },{ wch:32 }];
+  ws['!cols'] = [{ wch:10 },{ wch:14 },{ wch:14 },{ wch:50 },{ wch:12 },{ wch:16 },{ wch:12 },{ wch:18 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Field Records');
   return wb;

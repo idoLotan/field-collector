@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getNextId, getSurveyNextId, getDrainageNextId } from '../utils/storage';
 import { compressImage } from '../utils/image';
+import SignPicker, { SIGNS } from './SignPicker';
 
 const STATUS_OPTIONS = {
   signs:    ['תקין', 'לא תקין', 'תמרור להצבה'],
@@ -18,6 +19,9 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
   const [photo, setPhoto]   = useState(null);
   const [status, setStatus] = useState('');
   const [defect, setDefect] = useState('');
+  const [signCode, setSignCode] = useState('');
+  const [signDesc, setSignDesc] = useState('');
+  const [signPickerOpen, setSignPickerOpen] = useState(false);
   const [gps, setGps]       = useState({ lat: '', lon: '', state: 'idle' });
   const fileRef             = useRef(null);
 
@@ -65,7 +69,9 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
       notes: '',
       category: status,
       defect: status === 'לא תקין' ? defect : '',
-      signNumber: '', signCode: '',
+      signNumber: signCode || '',
+      signCode: signCode || '',
+      signDesc: signDesc || '',
       photos: [photo],
       date: now.toLocaleDateString('en-GB'),
       time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -73,6 +79,9 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
     setPhoto(null);
     setStatus('');
     setDefect('');
+    setSignCode('');
+    setSignDesc('');
+    setSignPickerOpen(false);
     setGps({ lat: '', lon: '', state: 'idle' });
     showToast('✅ נשמר!');
   };
@@ -110,6 +119,29 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
             className="quick-retake"
             onClick={() => fileRef.current.click()}
           >📷 צלם מחדש</button>
+        )}
+
+        {mode === 'signs' && (
+          <div className="quick-sign-field">
+            <label className="quick-sign-label">סוג תמרור</label>
+            {signCode ? (
+              <div className="sign-selected-row">
+                <div className="sign-selected-icon">
+                  {(() => { const s = SIGNS.find(x => x.code === signCode); return s ? <img src={s.img} alt={signCode} /> : null; })()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span className="sign-selected-label">{signCode}</span>
+                  {signDesc && <div style={{ fontSize: '.75rem', color: 'var(--gray)', marginTop: 2 }}>{signDesc}</div>}
+                </div>
+                <button className="sign-change-btn" onClick={() => setSignPickerOpen(true)}>שנה</button>
+                <button className="sign-clear-btn" onClick={() => { setSignCode(''); setSignDesc(''); }}>✕</button>
+              </div>
+            ) : (
+              <button className="sign-pick-btn" onClick={() => setSignPickerOpen(true)}>
+                לחץ לבחירת סוג תמרור…
+              </button>
+            )}
+          </div>
         )}
 
         <div className="quick-chips">
@@ -165,6 +197,11 @@ export default function QuickTab({ active, mode, onSaved, showToast, openLightbo
         capture="environment"
         style={{ display: 'none' }}
         onChange={handleFile}
+      />
+      <SignPicker
+        open={signPickerOpen}
+        onSelect={(code, desc) => { setSignCode(code); setSignDesc(desc || ''); }}
+        onClose={() => setSignPickerOpen(false)}
       />
     </div>
   );
