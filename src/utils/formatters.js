@@ -3,6 +3,24 @@ export function formatId(id) {
   return id;
 }
 
+export function shortId(id) {
+  if (id == null) return '';
+  if (typeof id === 'number') return String(id);
+  const parts = String(id).split('-');
+  return parts[parts.length - 1] || String(id);
+}
+
+export function compactId(id) {
+  if (id == null) return '';
+  if (typeof id === 'number') return String(id);
+  const parts = String(id).split('-');
+  // Return last two parts separated by dash: "270-4ut"
+  if (parts.length >= 2) {
+    return parts[parts.length - 2] + '-' + parts[parts.length - 1];
+  }
+  return parts[parts.length - 1] || String(id);
+}
+
 export function escRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

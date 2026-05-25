@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { formatId } from '../utils/formatters';
+import { formatId, shortId } from '../utils/formatters';
 import { saveRecordPhotos } from '../utils/export';
 import EditRecordSheet from './EditRecordSheet';
 
 export default function RecordCard({ record, onDelete, onEdit, openLightbox, showToast }) {
   const [editing, setEditing] = useState(false);
-  const fid = formatId(record.id);
+  const fid = shortId(record.id);
+  const fullId = formatId(record.id);
 
   const handleSavePhotos = async () => {
     try {
@@ -39,7 +40,7 @@ export default function RecordCard({ record, onDelete, onEdit, openLightbox, sho
       {record.photos?.length > 0 && (
         <div className="rec-photos">
           {record.photos.map((src, i) => (
-            <img key={i} className="rec-photo-thumb" src={src} alt={`${fid}_${i + 1}`} onClick={() => openLightbox(src)} />
+            <img key={i} className="rec-photo-thumb" src={src} alt={`${fullId}_${i + 1}`} onClick={() => openLightbox(src)} />
           ))}
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatId } from '../utils/formatters';
+import { formatId, shortId } from '../utils/formatters';
 import { saveRecordPhotos } from '../utils/export';
 import EditRecordSheet from './EditRecordSheet';
 
@@ -20,7 +20,8 @@ const CONDITION_CLASS = {
 
 export default function DrainageRecordCard({ record, onDelete, onEdit, openLightbox, showToast }) {
   const [editing, setEditing] = useState(false);
-  const fid = formatId(record.id);
+  const fid = shortId(record.id);
+  const fullId = formatId(record.id);
 
   const handleSavePhotos = async () => {
     try { await saveRecordPhotos(record); }
@@ -60,7 +61,7 @@ export default function DrainageRecordCard({ record, onDelete, onEdit, openLight
       {record.photos?.length > 0 && (
         <div className="rec-photos">
           {record.photos.map((src, i) => (
-            <img key={i} className="rec-photo-thumb" src={src} alt={`${fid}_${i + 1}`}
+            <img key={i} className="rec-photo-thumb" src={src} alt={`${fullId}_${i + 1}`}
               onClick={() => openLightbox(src)} />
           ))}
         </div>

@@ -776,6 +776,11 @@ textarea { min-height: 90px; resize: vertical; }
 .category-btn-ok.active  { background: var(--green); color: #fff; border-color: var(--green); }
 .category-btn-bad.active { background: var(--red);   color: #fff; border-color: var(--red); }
 
+.btn-cloud {
+  background: #3b82f6; color: #fff;
+  font-size: .95rem;
+}
+
 .btn-whatsapp {
   background: #25d366; color: #fff;
   width: 100% !important;

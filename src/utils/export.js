@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
-import { formatId } from './formatters';
+import { formatId, shortId, compactId } from './formatters';
 
 const RB_DIRS = [
   { key: 'north', label: 'צפון' },
@@ -11,7 +11,7 @@ const RB_DIRS = [
 const RB_SIGNS = ['301', '303', '306', '214', '213'];
 
 function buildWorkbook(records) {
-  const rows = [['ID', 'Latitude', 'Longitude', 'Notes', 'Category', 'תיאור', 'key', 'סטטוס']];
+  const rows = [['ID', 'Short ID', 'Latitude', 'Longitude', 'Notes', 'Category', 'תיאור', 'key', 'סטטוס']];
 
   records.forEach(r => {
     const rbEntries = [];
@@ -27,7 +27,7 @@ function buildWorkbook(records) {
     if (rbEntries.length) {
       rbEntries.forEach(({ sign, status }) => {
         rows.push([
-          formatId(r.id), r.lat, r.lon,
+          formatId(r.id), shortId(r.id), r.lat, r.lon,
           'כיכר',   // Notes
           'כיכר',   // Category
           sign,     // תיאור
@@ -37,7 +37,7 @@ function buildWorkbook(records) {
       });
     } else {
       rows.push([
-        formatId(r.id), r.lat, r.lon,
+        formatId(r.id), shortId(r.id), r.lat, r.lon,
         r.defect ? (r.defect + (r.notes ? ' — ' + r.notes : '')) : r.notes,
         r.category || '',
         r.signNumber || '',
@@ -48,7 +48,7 @@ function buildWorkbook(records) {
   });
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch:10 },{ wch:14 },{ wch:14 },{ wch:50 },{ wch:12 },{ wch:16 },{ wch:12 },{ wch:18 }];
+  ws['!cols'] = [{ wch:10 },{ wch:6 },{ wch:14 },{ wch:14 },{ wch:50 },{ wch:12 },{ wch:16 },{ wch:12 },{ wch:18 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Field Records');
   return wb;
@@ -145,14 +145,16 @@ function openWhatsAppWithText(text) {
 }
 
 export async function exportExcel(records) {
-  const filename = `field-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
+  const filename = `field-records-${firstId}.xlsx`;
   const wbout = XLSX.write(buildWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   await saveFile(blob, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 export async function shareExcel(records) {
-  const filename = `field-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
+  const filename = `field-records-${firstId}.xlsx`;
   const wbout = XLSX.write(buildWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const file = new File([blob], filename, { type: blob.type });
@@ -181,7 +183,8 @@ export async function exportAllPhotosZip(records) {
     });
   }
 
-  const filename = `field-photos-${new Date().toISOString().slice(0, 10)}.zip`;
+  const firstId = withPhotos[0]?.id ? compactId(withPhotos[0].id) : 'photos';
+  const filename = `field-photos-${firstId}.zip`;
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
   const file = new File([blob], filename, { type: 'application/zip' });
 
@@ -255,12 +258,12 @@ async function sharePhotosOrFallback(photoFiles, dateStr, showToast) {
 }
 
 export async function shareWhatsApp(records, showToast) {
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
 
   const wbout = XLSX.write(buildWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const xlsxBlob = new Blob([wbout], { type: xlsxType });
-  const xlsxFilename = `field-records-${dateStr}.xlsx`;
+  const xlsxFilename = `field-records-${firstId}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
   const uploadBase = window.UPLOAD_BASE_URL;
@@ -318,11 +321,11 @@ function buildSurveyWorkbook(records) {
 }
 
 export async function shareSurveyWhatsApp(records, showToast) {
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
   const wbout = XLSX.write(buildSurveyWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const xlsxBlob = new Blob([wbout], { type: xlsxType });
-  const xlsxFilename = `survey-records-${dateStr}.xlsx`;
+  const xlsxFilename = `survey-records-${firstId}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
   const uploadBase = window.UPLOAD_BASE_URL;
@@ -377,7 +380,7 @@ function buildDrainageWorkbook(records) {
 }
 
 export async function shareDrainageWhatsApp(records, showToast) {
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
   const wbout = XLSX.write(buildDrainageWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const xlsxBlob = new Blob([wbout], { type: xlsxType });

@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
-import { formatId } from '../utils/formatters';
+import { formatId, shortId, compactId } from '../utils/formatters';
 import { getNextId, getSurveyNextId, loadAddrPairs } from '../utils/storage';
-import { useCompass } from '../utils/useCompass';
-import CompassWidget from './CompassWidget';
 import { compressImage } from '../utils/image';
 
 const userIcon = L.divIcon({
@@ -84,8 +82,9 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
   const [pendingStatus, setPendingStatus] = useState('');
   const [pendingPhotos, setPendingPhotos] = useState([]);
   const photoInputRef = useRef(null);
-
-  const { heading, active: compassActive, toggle: toggleCompass } = useCompass();
+  const geojsonInputRef = useRef(null);
+  const [geoJsonData, setGeoJsonData]     = useState(null);
+  const [geoJsonVisible, setGeoJsonVisible] = useState(true);
 
   const statusOptions = mode === 'survey' ? SURVEY_STATUSES : SIGNS_STATUSES;
 
@@ -185,6 +184,25 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
     setPendingPoint(latlng);
   };
 
+  const handleGeoJsonFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      if (json.type !== 'FeatureCollection' && json.type !== 'Feature' && json.type !== 'Geometry') {
+        showToast('❌ קובץ GeoJSON לא תקין');
+        return;
+      }
+      setGeoJsonData(json);
+      setGeoJsonVisible(true);
+      showToast('✅ GeoJSON הועלה בהצלחה');
+    } catch (err) {
+      showToast('❌ שגיאה בקריאת הקובץ: ' + err.message);
+    }
+    e.target.value = '';
+  };
+
   const handleSavePoint = () => {
     if (!pendingPoint) { showToast('❌ לחץ על המפה לבחירת מיקום'); return; }
     const now = new Date();
@@ -261,6 +279,16 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
         <MapController active={active} />
         <MapClickHandler addMode={addMode} onMapClick={handleMapClick} />
 
+        {geoJsonVisible && geoJsonData && (
+          <GeoJSON data={geoJsonData} style={() => ({
+            color: '#6366f1',
+            weight: 2,
+            opacity: 0.7,
+            fillOpacity: 0.2,
+            dashArray: '5, 5'
+          })} />
+        )}
+
         {userPos && (
           <>
             <Marker position={userPos} icon={userIcon}>
@@ -282,7 +310,8 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
         )}
 
         {recordsWithCoords.map(r => {
-          const fid = formatId(r.id);
+          const fid = compactId(r.id);
+          const fullId = formatId(r.id);
           const isLast = r.id === lastRecordId;
           const isEditing = editingRecord?.id === r.id;
           return (
@@ -358,12 +387,6 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
         })}
       </MapContainer>
 
-      {compassActive && (
-        <div className="map-compass">
-          <CompassWidget heading={heading} size={56} />
-        </div>
-      )}
-
       {addMode && (
         <div className="map-add-banner">
           {pendingPoint ? '✅ מיקום נבחר — מלא פרטים למטה' : '👆 לחץ על המפה לבחירת מיקום'}
@@ -383,11 +406,6 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
         <button className="map-fab map-fab-records" onClick={plotRecordMarkers} title="הצג כל הרשומות">📋</button>
         <button className="map-fab map-fab-locate" onClick={() => goToMyLocation(true)} title="המיקום שלי">📍</button>
         <button
-          className={`map-fab map-fab-compass${compassActive ? ' active' : ''}`}
-          onClick={() => toggleCompass(showToast)}
-          title="מצפן"
-        >🧭</button>
-        <button
           className={`map-fab map-fab-satellite${satellite ? ' active' : ''}`}
           onClick={() => setSatellite(s => !s)}
           title={satellite ? 'מפה רגילה' : 'תצלום לווין'}
@@ -402,7 +420,27 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
           onClick={() => { setAddrSearch(s => !s); setTimeout(() => addrInputRef.current?.focus(), 100); }}
           title="חפש כתובת"
         >🔍</button>
+        <button
+          className={`map-fab map-fab-geojson${geoJsonVisible ? ' active' : ''}`}
+          onClick={() => geojsonInputRef.current?.click()}
+          title="טען GeoJSON"
+        >🗺️</button>
+        {geoJsonData && (
+          <button
+            className={`map-fab map-fab-geojson-toggle${geoJsonVisible ? ' active' : ''}`}
+            onClick={() => setGeoJsonVisible(v => !v)}
+            title={geoJsonVisible ? 'הסתר שכבה' : 'הצג שכבה'}
+          >👁️</button>
+        )}
       </div>
+
+      <input
+        ref={geojsonInputRef}
+        type="file"
+        accept=".geojson,.json"
+        onChange={handleGeoJsonFile}
+        style={{ display: 'none' }}
+      />
 
       {addrSearch && (
         <div className="map-addr-panel">

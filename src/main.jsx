@@ -9,6 +9,12 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Configure cloud sync backend URL (set window.BACKEND_URL before calling upload)
+// Example: window.BACKEND_URL = 'http://localhost:3001';
+if (!window.BACKEND_URL) {
+  window.BACKEND_URL = localStorage.getItem('backendUrl') || 'http://localhost:3001';
+}
+
 const splashStart = Date.now();
 const MIN_SPLASH = 1800;
 
