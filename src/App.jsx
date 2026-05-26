@@ -11,6 +11,7 @@ import Overlay from './components/Overlay';
 import Lightbox from './components/Lightbox';
 import Toast from './components/Toast';
 import { loadRecords, persistRecords, loadSurveyRecords, persistSurveyRecords, loadDrainageRecords, persistDrainageRecords } from './utils/storage';
+import { fetchRecordsFromCloud } from './utils/cloudSync';
 
 const MODE_KEY = 'fieldcollector_mode';
 
@@ -68,6 +69,70 @@ export default function App() {
   const handleEditDrainageRecord = useCallback((id, updates) =>
     updateDrainageRecords(drainageRecords.map(r => r.id === id ? { ...r, ...updates } : r)),
     [drainageRecords, updateDrainageRecords]);
+
+  const mergeRecordsById = (existing, incoming) => {
+    const merged = [...existing];
+    for (const record of incoming) {
+      const index = merged.findIndex(r => r.id === record.id);
+      if (index >= 0) {
+        merged[index] = { ...merged[index], ...record, photos: merged[index].photos || [] };
+      } else {
+        merged.push(record);
+      }
+    }
+    return merged;
+  };
+
+  const normalizeCloudRecords = (recordsList) => {
+    const signs = [];
+    const survey = [];
+    const drainage = [];
+
+    for (const record of recordsList) {
+      if (record.drainageType || record.material || record.runoff || record.drainageCondition) {
+        drainage.push(record);
+      } else if (record.propertyType || record.residents || record.ownerName || record.tenant) {
+        survey.push(record);
+      } else {
+        signs.push(record);
+      }
+    }
+
+    return { signs, survey, drainage };
+  };
+
+  useEffect(() => {
+    const backendUrl = window.BACKEND_URL;
+    if (!backendUrl) return;
+
+    (async () => {
+      const result = await fetchRecordsFromCloud(backendUrl, showToast);
+      if (!result.success) return;
+      const { signs, survey, drainage } = normalizeCloudRecords(result.records);
+
+      if (signs.length) {
+        setRecords(prev => {
+          const merged = mergeRecordsById(prev, signs);
+          persistRecords(merged);
+          return merged;
+        });
+      }
+      if (survey.length) {
+        setSurveyRecords(prev => {
+          const merged = mergeRecordsById(prev, survey);
+          persistSurveyRecords(merged);
+          return merged;
+        });
+      }
+      if (drainage.length) {
+        setDrainageRecords(prev => {
+          const merged = mergeRecordsById(prev, drainage);
+          persistDrainageRecords(merged);
+          return merged;
+        });
+      }
+    })();
+  }, [showToast]);
 
   const activeRecords = appMode === 'survey' ? surveyRecords : appMode === 'drainage' ? drainageRecords : records;
 

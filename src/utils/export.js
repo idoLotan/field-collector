@@ -221,44 +221,33 @@ function buildPhotoFiles(records) {
 
 async function sharePhotosOrFallback(photoFiles, dateStr, showToast) {
   if (!photoFiles.length) return;
-  if (navigator.canShare?.({ files: photoFiles })) {
+
+  const zip = new JSZip();
+  photoFiles.forEach(f => zip.file(f.name, f));
+  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const zipFilename = `photos-${dateStr}.zip`;
+  const zipFile = new File([zipBlob], zipFilename, { type: 'application/zip' });
+
+  if (navigator.canShare?.({ files: [zipFile] })) {
     try {
-      await navigator.share({ title: 'תמונות שטח', files: photoFiles });
+      await navigator.share({
+        title: 'תמונות שטח',
+        text: `${photoFiles.length} תמונה${photoFiles.length !== 1 ? 'ים' : ''}`,
+        files: [zipFile],
+      });
       return;
     } catch (err) {
       if (err.name === 'AbortError') return;
     }
   }
-  // Try upload to configured host (window.UPLOAD_BASE_URL) before falling back to ZIP download
-  const uploadBase = window.UPLOAD_BASE_URL;
-  if (uploadBase) {
-    const urls = [];
-    for (const f of photoFiles) {
-      try {
-        const url = await uploadFileToHost(f, uploadBase);
-        urls.push(url);
-      } catch (e) {
-        console.warn('upload failed for', f.name, e);
-      }
-    }
-    if (urls.length) {
-      const text = `תמונות: ${urls.join('\n')}`;
-      openWhatsAppWithText(text);
-      showToast?.('📸 תמונות הועלו ושיתוף וואטסאפ נפתח');
-      return;
-    }
-  }
 
-  // Last resort: ZIP download
-  const zip = new JSZip();
-  photoFiles.forEach(f => zip.file(f.name, f));
-  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-  await saveFile(zipBlob, `photos-${dateStr}.zip`, 'application/zip');
+  await saveFile(zipBlob, zipFilename, 'application/zip');
   showToast?.('📸 תמונות נשמרו בהורדות');
 }
 
 export async function shareWhatsApp(records, showToast) {
   const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
+  const dateStr = new Date().toISOString().slice(0, 10);
 
   const wbout = XLSX.write(buildWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -266,29 +255,11 @@ export async function shareWhatsApp(records, showToast) {
   const xlsxFilename = `field-records-${firstId}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
-  const uploadBase = window.UPLOAD_BASE_URL;
   if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
       await navigator.share({ title: 'Field Collector', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
-      // try upload if configured, else save
-      if (uploadBase) {
-        try {
-          const url = await uploadFileToHost(xlsxFile, uploadBase);
-          openWhatsAppWithText(`קובץ: ${url}`);
-        } catch (e) {
-          await saveFile(xlsxBlob, xlsxFilename, xlsxType);
-        }
-      } else {
-        await saveFile(xlsxBlob, xlsxFilename, xlsxType);
-      }
-    }
-  } else if (uploadBase) {
-    try {
-      const url = await uploadFileToHost(xlsxFile, uploadBase);
-      openWhatsAppWithText(`קובץ: ${url}`);
-    } catch (e) {
       await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
   } else {
@@ -322,34 +293,18 @@ function buildSurveyWorkbook(records) {
 
 export async function shareSurveyWhatsApp(records, showToast) {
   const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
+  const dateStr = new Date().toISOString().slice(0, 10);
   const wbout = XLSX.write(buildSurveyWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const xlsxBlob = new Blob([wbout], { type: xlsxType });
   const xlsxFilename = `survey-records-${firstId}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
-  const uploadBase = window.UPLOAD_BASE_URL;
   if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
       await navigator.share({ title: 'Survey Records', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
-      if (uploadBase) {
-        try {
-          const url = await uploadFileToHost(xlsxFile, uploadBase);
-          openWhatsAppWithText(`קובץ: ${url}`);
-        } catch (e) {
-          await saveFile(xlsxBlob, xlsxFilename, xlsxType);
-        }
-      } else {
-        await saveFile(xlsxBlob, xlsxFilename, xlsxType);
-      }
-    }
-  } else if (uploadBase) {
-    try {
-      const url = await uploadFileToHost(xlsxFile, uploadBase);
-      openWhatsAppWithText(`קובץ: ${url}`);
-    } catch (e) {
       await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
   } else {
@@ -381,34 +336,18 @@ function buildDrainageWorkbook(records) {
 
 export async function shareDrainageWhatsApp(records, showToast) {
   const firstId = records[0]?.id ? compactId(records[0].id) : 'export';
+  const dateStr = new Date().toISOString().slice(0, 10);
   const wbout = XLSX.write(buildDrainageWorkbook(records), { bookType: 'xlsx', type: 'array' });
   const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const xlsxBlob = new Blob([wbout], { type: xlsxType });
-  const xlsxFilename = `drainage-records-${dateStr}.xlsx`;
+  const xlsxFilename = `drainage-records-${firstId}.xlsx`;
   const xlsxFile = new File([xlsxBlob], xlsxFilename, { type: xlsxType });
 
-  const uploadBase = window.UPLOAD_BASE_URL;
   if (navigator.canShare?.({ files: [xlsxFile] })) {
     try {
       await navigator.share({ title: 'Drainage Records', files: [xlsxFile] });
     } catch (err) {
       if (err.name === 'AbortError') return;
-      if (uploadBase) {
-        try {
-          const url = await uploadFileToHost(xlsxFile, uploadBase);
-          openWhatsAppWithText(`קובץ: ${url}`);
-        } catch (e) {
-          await saveFile(xlsxBlob, xlsxFilename, xlsxType);
-        }
-      } else {
-        await saveFile(xlsxBlob, xlsxFilename, xlsxType);
-      }
-    }
-  } else if (uploadBase) {
-    try {
-      const url = await uploadFileToHost(xlsxFile, uploadBase);
-      openWhatsAppWithText(`קובץ: ${url}`);
-    } catch (e) {
       await saveFile(xlsxBlob, xlsxFilename, xlsxType);
     }
   } else {
@@ -430,52 +369,20 @@ export async function saveRecordPhotos(record) {
     return new File([new Blob([arr], { type: 'image/jpeg' })], `${fid}_${i + 1}.jpg`, { type: 'image/jpeg' });
   });
 
-  // Try native Android share sheet (includes WhatsApp) — works on HTTPS
+  const zip = new JSZip();
+  files.forEach(f => zip.file(f.name, f));
+  const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const zipFilename = `photos-${fid}.zip`;
+  const zipFile = new File([zipBlob], zipFilename, { type: 'application/zip' });
+
   if (navigator.share) {
     try {
-      await navigator.share({ title: `תמונות ${fid}`, files });
+      await navigator.share({ title: `תמונות ${fid}`, files: [zipFile] });
       return;
     } catch (err) {
       if (err.name === 'AbortError') return;
-      // NotAllowedError / not supported — fall through to WhatsApp fallback
     }
   }
 
-  // Fallback: save files to device and open WhatsApp
-  const uploadBase = window.UPLOAD_BASE_URL;
-  if (uploadBase) {
-    const urls = [];
-    for (const f of files) {
-      try {
-        const url = await uploadFileToHost(f, uploadBase);
-        urls.push(url);
-      } catch (e) {
-        console.warn('upload failed for', f.name, e);
-      }
-    }
-    if (urls.length) {
-      openWhatsAppWithText(`תמונות ${fid}: ${urls.join('\n')}`);
-      return;
-    }
-  }
-
-  for (let idx = 0; idx < files.length; idx++) {
-    const file = files[idx];
-    await new Promise(resolve => setTimeout(resolve, idx * 300));
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url; a.download = file.name;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-  }
-
-  // Open WhatsApp directly after saving
-  const wa = document.createElement('a');
-  wa.href = 'whatsapp://';
-  wa.target = '_blank';
-  wa.rel = 'noopener';
-  document.body.appendChild(wa);
-  wa.click();
-  document.body.removeChild(wa);
+  await saveFile(zipBlob, zipFilename, 'application/zip');
 }
