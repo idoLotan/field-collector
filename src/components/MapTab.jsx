@@ -236,6 +236,7 @@ export default function MapTab({ active, records, showToast, onUpdateRecord, onS
         zoom={14}
         style={{ width: '100%', height: '100%' }}
         zoomControl={true}
+        attributionControl={false}
         ref={mapRef}
         className={addMode ? 'map-add-cursor' : ''}
         whenReady={() => {
