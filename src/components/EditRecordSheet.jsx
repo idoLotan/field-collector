@@ -87,19 +87,6 @@ export default function EditRecordSheet({ record, mode, onSave, onClose, openLig
           <button className="sign-modal-x" onClick={onClose}>✕</button>
         </div>
 
-        <div className="edit-top-actions">
-          {mode === 'signs' && (
-            <button className="edit-action-btn" onClick={() => setSignPickerOpen(true)}>
-              <span className="edit-action-icon">🚧</span>
-              <span>בחר תמרור</span>
-            </button>
-          )}
-          <button className="edit-action-btn" onClick={() => photosFieldRef.current?.triggerCamera()}>
-            <span className="edit-action-icon">📷</span>
-            <span>צלם תמונה</span>
-          </button>
-        </div>
-
         <div className="edit-sheet-body">
 
           <div className="edit-field">

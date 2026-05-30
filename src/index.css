@@ -1606,18 +1606,11 @@ textarea { min-height: 90px; resize: vertical; }
 .edit-field { margin-bottom: 16px; }
 .edit-lbl { font-size: .8rem; font-weight: 700; color: var(--gray); margin-bottom: 8px;
   text-transform: uppercase; letter-spacing: .4px; display: block; }
-.edit-action-row,
-.edit-top-actions {
+.edit-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 16px;
-}
-.edit-top-actions {
-  padding: 12px 20px;
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
 }
 .edit-action-btn {
   display: flex;
