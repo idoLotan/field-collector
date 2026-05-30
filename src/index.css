@@ -1606,6 +1606,35 @@ textarea { min-height: 90px; resize: vertical; }
 .edit-field { margin-bottom: 16px; }
 .edit-lbl { font-size: .8rem; font-weight: 700; color: var(--gray); margin-bottom: 8px;
   text-transform: uppercase; letter-spacing: .4px; display: block; }
+.edit-action-row,
+.edit-top-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.edit-top-actions {
+  padding: 12px 20px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.edit-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  border: 1.5px solid var(--blue);
+  border-radius: 12px;
+  background: #eff6ff;
+  color: var(--blue);
+  font-size: .95rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.edit-action-btn:active { transform: scale(.98); opacity: .86; }
+.edit-action-icon { font-size: 1.15rem; line-height: 1; }
 
 /* ── Defect sub-chips (לא תקין) ── */
 .defect-chips {

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
 
 const MAX_PHOTOS = 3;
 
@@ -21,7 +21,7 @@ function compressImage(file) {
   });
 }
 
-export default function PhotosField({ photos, onChange, openLightbox, showToast }) {
+const PhotosField = forwardRef(function PhotosField({ photos, onChange, openLightbox, showToast }, ref) {
   const inputRef = useRef(null);
 
   const triggerCamera = () => {
@@ -31,6 +31,10 @@ export default function PhotosField({ photos, onChange, openLightbox, showToast 
     }
     inputRef.current.click();
   };
+
+  useImperativeHandle(ref, () => ({
+    triggerCamera,
+  }));
 
   const handleInput = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -92,4 +96,6 @@ export default function PhotosField({ photos, onChange, openLightbox, showToast 
       />
     </div>
   );
-}
+});
+
+export default PhotosField;

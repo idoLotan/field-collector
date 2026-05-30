@@ -59,6 +59,8 @@ export default function RecordCard({ record, onDelete, onEdit, openLightbox, sho
           mode="signs"
           onSave={(updates) => { onEdit(record.id, updates); showToast('✅ הרשומה עודכנה.'); }}
           onClose={() => setEditing(false)}
+          openLightbox={openLightbox}
+          showToast={showToast}
         />
       )}
     </div>

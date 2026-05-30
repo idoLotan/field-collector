@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import PhotosField from './PhotosField';
+import SignPicker, { SIGNS } from './SignPicker';
 
 const SIGNS_CATS    = ['תקין', 'לא תקין', 'תמרור להצבה'];
 const DEFECTS       = ['תמרור עקום', 'עמוד עקום', 'תמרור דהוי', 'הזזת תמרור'];
@@ -27,13 +29,20 @@ function ChipGroup({ label, options, value, onChange }) {
   );
 }
 
-export default function EditRecordSheet({ record, mode, onSave, onClose }) {
+export default function EditRecordSheet({ record, mode, onSave, onClose, openLightbox, showToast }) {
+  const photosFieldRef = useRef(null);
   const [address,   setAddress]   = useState(record.address   || '');
   const [notes,     setNotes]     = useState(record.notes     || '');
+  const [lat,        setLat]       = useState(record.lat       || '');
+  const [lon,        setLon]       = useState(record.lon       || '');
+  const [photos,     setPhotos]    = useState(record.photos    || []);
   // signs
   const [category,   setCategory]   = useState(record.category   || '');
   const [defect,     setDefect]     = useState(record.defect     || '');
   const [signNumber, setSignNumber] = useState(record.signNumber || '');
+  const [signCode,   setSignCode]   = useState(record.signCode   || '');
+  const [signDesc,   setSignDesc]   = useState(record.signDesc   || '');
+  const [signPickerOpen, setSignPickerOpen] = useState(false);
   // survey
   const [condition,    setCondition]    = useState(record.condition    || '');
   const [propertyType, setPropertyType] = useState(record.propertyType || '');
@@ -45,9 +54,22 @@ export default function EditRecordSheet({ record, mode, onSave, onClose }) {
   const [drainCond,    setDrainCond]    = useState(record.condition    || '');
 
   const handleSave = () => {
-    const base = { address: address.trim(), notes: notes.trim() };
+    const base = {
+      address: address.trim(),
+      notes: notes.trim(),
+      lat: String(lat).trim(),
+      lon: String(lon).trim(),
+      photos,
+    };
     if (mode === 'signs') {
-      onSave({ ...base, category, defect: category === 'לא תקין' ? defect : '', signNumber: signNumber.trim() });
+      onSave({
+        ...base,
+        category,
+        defect: category === 'לא תקין' ? defect : '',
+        signNumber: signNumber.trim(),
+        signCode,
+        signDesc,
+      });
     } else if (mode === 'survey') {
       onSave({ ...base, condition, propertyType, residents, ageGroup, tenancy });
     } else {
@@ -65,6 +87,19 @@ export default function EditRecordSheet({ record, mode, onSave, onClose }) {
           <button className="sign-modal-x" onClick={onClose}>✕</button>
         </div>
 
+        <div className="edit-top-actions">
+          {mode === 'signs' && (
+            <button className="edit-action-btn" onClick={() => setSignPickerOpen(true)}>
+              <span className="edit-action-icon">🚧</span>
+              <span>בחר תמרור</span>
+            </button>
+          )}
+          <button className="edit-action-btn" onClick={() => photosFieldRef.current?.triggerCamera()}>
+            <span className="edit-action-icon">📷</span>
+            <span>צלם תמונה</span>
+          </button>
+        </div>
+
         <div className="edit-sheet-body">
 
           <div className="edit-field">
@@ -74,6 +109,16 @@ export default function EditRecordSheet({ record, mode, onSave, onClose }) {
 
           {mode === 'signs' && (
             <>
+              <div className="edit-action-row">
+                <button className="edit-action-btn" onClick={() => setSignPickerOpen(true)}>
+                  <span className="edit-action-icon">🚧</span>
+                  <span>בחר תמרור</span>
+                </button>
+                <button className="edit-action-btn" onClick={() => photosFieldRef.current?.triggerCamera()}>
+                  <span className="edit-action-icon">📷</span>
+                  <span>צלם תמונה</span>
+                </button>
+              </div>
               <ChipGroup label="סטטוס" options={SIGNS_CATS} value={category}
                 onChange={v => { setCategory(v); if (v !== 'לא תקין') setDefect(''); }} />
               {category === 'לא תקין' && (
@@ -87,6 +132,29 @@ export default function EditRecordSheet({ record, mode, onSave, onClose }) {
                   </div>
                 </div>
               )}
+              <div className="edit-field">
+                <div className="edit-lbl">סוג תמרור</div>
+                {signCode ? (
+                  <div className="sign-selected-row">
+                    <div className="sign-selected-icon">
+                      {(() => {
+                        const selectedSign = SIGNS.find(x => x.code === signCode);
+                        return selectedSign ? <img src={selectedSign.img} alt={signCode} /> : null;
+                      })()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span className="sign-selected-label">{signCode}</span>
+                      {signDesc && <div style={{ fontSize: '.75rem', color: 'var(--gray)', marginTop: 2 }}>{signDesc}</div>}
+                    </div>
+                    <button className="sign-change-btn" onClick={() => setSignPickerOpen(true)}>שנה</button>
+                    <button className="sign-clear-btn" onClick={() => { setSignCode(''); setSignNumber(''); setSignDesc(''); }}>×</button>
+                  </div>
+                ) : (
+                  <button className="sign-pick-btn" onClick={() => setSignPickerOpen(true)}>
+                    לחץ לבחירת סוג תמרור...
+                  </button>
+                )}
+              </div>
               <div className="edit-field">
                 <div className="edit-lbl">מספר תמרור</div>
                 <input type="text" value={signNumber} onChange={e => setSignNumber(e.target.value)} placeholder="301…" />
@@ -117,6 +185,22 @@ export default function EditRecordSheet({ record, mode, onSave, onClose }) {
               placeholder="הערות…" rows={3} style={{ resize: 'vertical' }} />
           </div>
 
+          <div className="edit-field">
+            <div className="edit-lbl">GPS</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <input type="text" value={lat} onChange={e => setLat(e.target.value)} placeholder="lat" inputMode="decimal" />
+              <input type="text" value={lon} onChange={e => setLon(e.target.value)} placeholder="lon" inputMode="decimal" />
+            </div>
+          </div>
+
+          <PhotosField
+            ref={photosFieldRef}
+            photos={photos}
+            onChange={setPhotos}
+            openLightbox={openLightbox}
+            showToast={showToast}
+          />
+
         </div>
 
         <div className="edit-sheet-foot">
@@ -132,6 +216,11 @@ export default function EditRecordSheet({ record, mode, onSave, onClose }) {
         </div>
 
       </div>
+      <SignPicker
+        open={signPickerOpen}
+        onSelect={(code, desc) => { setSignCode(code); setSignNumber(code); setSignDesc(desc || ''); }}
+        onClose={() => setSignPickerOpen(false)}
+      />
     </div>
   );
 }

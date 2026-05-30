@@ -65,6 +65,8 @@ export default function SurveyRecordCard({ record, onDelete, onEdit, openLightbo
           mode="survey"
           onSave={(updates) => { onEdit(record.id, updates); showToast('✅ הרשומה עודכנה.'); }}
           onClose={() => setEditing(false)}
+          openLightbox={openLightbox}
+          showToast={showToast}
         />
       )}
     </div>

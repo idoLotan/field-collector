@@ -81,6 +81,8 @@ export default function DrainageRecordCard({ record, onDelete, onEdit, openLight
           mode="drainage"
           onSave={(updates) => { onEdit(record.id, updates); showToast('✅ הרשומה עודכנה.'); }}
           onClose={() => setEditing(false)}
+          openLightbox={openLightbox}
+          showToast={showToast}
         />
       )}
     </div>
